@@ -8,8 +8,8 @@
 
 <p align="center">
   繁體中文 |
-  <a href="./README.zh_CN.md">简体中文</a> |
-  <a href="./README.md">English</a> |
+  <a href="../../README.md">简体中文</a> |
+  <a href="./README.en.md">English</a> |
   <a href="./README.fr.md">Français</a> |
   <a href="./README.ja.md">日本語</a>
 </p>
@@ -70,22 +70,22 @@
 
 <p align="center">
   <a href="https://www.cherry-ai.com/" target="_blank">
-    <img src="./docs/images/cherry-studio.png" alt="Cherry Studio" height="80" />
+    <img src="../../docs/images/cherry-studio.png" alt="Cherry Studio" height="80" />
   </a><!--
   --><a href="https://github.com/iOfficeAI/AionUi/" target="_blank">
-    <img src="./docs/images/aionui.png" alt="Aion UI" height="80" />
+    <img src="../../docs/images/aionui.png" alt="Aion UI" height="80" />
   </a><!--
   --><a href="https://bda.pku.edu.cn/" target="_blank">
-    <img src="./docs/images/pku.png" alt="北京大學" height="80" />
+    <img src="../../docs/images/pku.png" alt="北京大學" height="80" />
   </a><!--
   --><a href="https://www.compshare.cn/?ytag=GPU_yy_gh_newapi" target="_blank">
-    <img src="./docs/images/ucloud.png" alt="UCloud 優刻得" height="80" />
+    <img src="../../docs/images/ucloud.png" alt="UCloud 優刻得" height="80" />
   </a><!--
   --><a href="https://www.aliyun.com/" target="_blank">
-    <img src="./docs/images/aliyun.png" alt="阿里雲" height="80" />
+    <img src="../../docs/images/aliyun.png" alt="阿里雲" height="80" />
   </a><!--
   --><a href="https://io.net/" target="_blank">
-    <img src="./docs/images/io-net.png" alt="IO.NET" height="80" />
+    <img src="../../docs/images/io-net.png" alt="IO.NET" height="80" />
   </a>
 </p>
 
@@ -396,7 +396,7 @@ docker run --name new-api -d --restart always \
 2. 在應用商店搜尋 **New-API**
 3. 一鍵安裝
 
-📖 [圖文教學](./docs/BT.md)
+📖 [圖文教學](../../docs/BT.md)
 
 </details>
 
@@ -416,7 +416,7 @@ docker run --name new-api -d --restart always \
 
 縮短 `SYNC_FREQUENCY` 可減少獨立 Redis 的陳舊視窗，但每個活躍 SID 在每個節點上會依該 TTL 增加一次資料庫主鍵查詢。上述保證只讓 Session 鑑權在不同拓撲下維持有界陳舊；限流和其他 Redis 控制面快取仍受拓撲影響。
 
-Token、Origin 驗證和 PAT 契約請參閱[使用者鑑權與登入工作階段](./docs/authentication.md)。
+Token、Origin 驗證和 PAT 契約請參閱[使用者鑑權與登入工作階段](../../docs/authentication.md)。
 
 ### 🔄 管道重試與快取
 
@@ -470,7 +470,7 @@ Token、Origin 驗證和 PAT 契約請參閱[使用者鑑權與登入工作階�
 
 ## 📜 許可證
 
-本項目採用 [GNU Affero 通用公共許可證 v3.0 (AGPLv3)](./LICENSE) 授權。
+本項目採用 [GNU Affero 通用公共許可證 v3.0 (AGPLv3)](../../LICENSE) 授權。
 
 本項目為開源項目，在 [One API](https://github.com/songquanpeng/one-api)（MIT 許可證）的基礎上進行二次開發。
 

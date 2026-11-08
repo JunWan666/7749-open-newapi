@@ -7,9 +7,9 @@
 🍥 **次世代大規模モデルゲートウェイとAI資産管理システム**
 
 <p align="center">
-  <a href="./README.zh_CN.md">简体中文</a> |
+  <a href="../../README.md">简体中文</a> |
   <a href="./README.zh_TW.md">繁體中文</a> |
-  <a href="./README.md">English</a> |
+  <a href="./README.en.md">English</a> |
   <a href="./README.fr.md">Français</a> |
   <strong>日本語</strong>
 </p>
@@ -71,22 +71,22 @@
 
 <p align="center">
   <a href="https://www.cherry-ai.com/" target="_blank">
-    <img src="./docs/images/cherry-studio.png" alt="Cherry Studio" height="80" />
+    <img src="../../docs/images/cherry-studio.png" alt="Cherry Studio" height="80" />
   </a><!--
   --><a href="https://github.com/iOfficeAI/AionUi/" target="_blank">
-    <img src="./docs/images/aionui.png" alt="Aion UI" height="80" />
+    <img src="../../docs/images/aionui.png" alt="Aion UI" height="80" />
   </a><!--
   --><a href="https://bda.pku.edu.cn/" target="_blank">
-    <img src="./docs/images/pku.png" alt="北京大学" height="80" />
+    <img src="../../docs/images/pku.png" alt="北京大学" height="80" />
   </a><!--
   --><a href="https://www.compshare.cn/?ytag=GPU_yy_gh_newapi" target="_blank">
-    <img src="./docs/images/ucloud.png" alt="UCloud 優刻得" height="80" />
+    <img src="../../docs/images/ucloud.png" alt="UCloud 優刻得" height="80" />
   </a><!--
   --><a href="https://www.aliyun.com/" target="_blank">
-    <img src="./docs/images/aliyun.png" alt="Alibaba Cloud" height="80" />
+    <img src="../../docs/images/aliyun.png" alt="Alibaba Cloud" height="80" />
   </a><!--
   --><a href="https://io.net/" target="_blank">
-    <img src="./docs/images/io-net.png" alt="IO.NET" height="80" />
+    <img src="../../docs/images/io-net.png" alt="IO.NET" height="80" />
   </a>
 </p>
 
@@ -397,7 +397,7 @@ docker run --name new-api -d --restart always \
 
 1. 宝塔パネル（**9.2.0バージョン**以上）をインストールし、アプリケーションストアで**New-API**を検索してインストールします。
 
-📖 [画像付きチュートリアル](./docs/BT.md)
+📖 [画像付きチュートリアル](../../docs/BT.md)
 
 </details>
 
@@ -417,7 +417,7 @@ docker run --name new-api -d --restart always \
 
 `SYNC_FREQUENCY` を短くすると独立 Redis のキャッシュ陳腐化時間は短くなりますが、有効な SID ごと、ノードごと、TTL ごとにデータベースへの主キー照会が 1 回増えます。この保証は Session 認証の陳腐化時間を限定するものです。レート制限や Redis を使うその他のコントロールプレーンキャッシュは、引き続きトポロジーに依存します。
 
-Token、Origin 検証、PAT の契約については[ユーザー認証とログインセッション](./docs/authentication.md)を参照してください。
+Token、Origin 検証、PAT の契約については[ユーザー認証とログインセッション](../../docs/authentication.md)を参照してください。
 
 ### 🔄 チャネルリトライとキャッシュ
 
@@ -471,7 +471,7 @@ Token、Origin 検証、PAT の契約については[ユーザー認証とログ
 
 ## 📜 ライセンス
 
-このプロジェクトは [GNU Affero General Public License v3.0 (AGPLv3)](./LICENSE) の下でライセンスされています。
+このプロジェクトは [GNU Affero General Public License v3.0 (AGPLv3)](../../LICENSE) の下でライセンスされています。
 
 本プロジェクトは、[One API](https://github.com/songquanpeng/one-api)（MITライセンス）をベースに開発されたオープンソースプロジェクトです。
 

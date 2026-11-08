@@ -26,8 +26,16 @@
 | 002 | 文档：新增本说明与提交规范 |
 | 003 | 文档：README 增加「7749 定制版说明」与差异表，仓库简介改为中文 |
 | 004 | 文档：徽章改为指向本仓库（license/release/镜像），移除上游推广徽章，英文 README 补差异表 |
+| 005 | 整理：README 默认简体中文，多语言 README 收进 `docs/i18n/`，移除 `electron/` 桌面端源码 |
 
 业务功能代码目前**尚未改动**，与上游 `v1.0.0-rc.25` 行为一致。
+
+## 与上游的目录差异
+
+- `README.md` 改为**简体中文**（仓库首页默认中文），英文与繁体/法/日版本收进 `docs/i18n/`
+- `electron/` 已移除：本仓库只做服务端部署，不需要上游的桌面客户端源码
+- `deploy` 相关（`Dockerfile.dev`、`docker-compose.dev.yml`、`new-api.service`）保持上游原位，避免破坏上游的开发流程
+- 其余目录（`bin/` `common/` `constant/` `controller/` `dto/` `i18n/` `logger/` `middleware/` `model/` `oauth/` `pkg/` `plugins/` `relay/` `relaykit/` `router/` `service/` `setting/` `tokenkit/` `types/` `web/`）都是 **Go 包目录**，导入路径由 `go.mod` 决定，**不能移动或改名**，否则全项目 import 失效
 
 ## 构建
 
