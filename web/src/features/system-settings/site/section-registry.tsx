@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { SystemInfoSection } from '../general/system-info-section'
+import { GroupQrcodeSection } from './group-qrcode-section'
 import {
   parseHeaderNavModules,
   parseSidebarModulesAdmin,
@@ -49,6 +50,11 @@ const SITE_SECTIONS = [
         }}
       />
     ),
+  },
+  {
+    id: 'group-qrcode',
+    titleKey: 'WeChat Group QR Code',
+    build: () => <GroupQrcodeSection />,
   },
   {
     id: 'notice',

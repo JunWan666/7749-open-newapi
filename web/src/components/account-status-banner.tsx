@@ -46,6 +46,7 @@ export function AccountStatusBanner() {
   const status = useAuthStore((state) => state.auth.user?.status)
   const username = useAuthStore((state) => state.auth.user?.username)
   const [open, setOpen] = useState(false)
+  const [qrOk, setQrOk] = useState(true)
 
   if (status !== STATUS_PENDING && status !== STATUS_SUSPICIOUS) {
     return null
@@ -57,7 +58,7 @@ export function AccountStatusBanner() {
     <>
       <div
         className={cn(
-          'flex items-center gap-3 border-b-2 px-4 py-2.5',
+          'flex h-11 items-center gap-3 border-b-2 px-4',
           isPending
             ? 'border-amber-400 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-950/60 dark:text-amber-100'
             : 'border-rose-400 bg-rose-50 text-rose-900 dark:border-rose-700 dark:bg-rose-950/60 dark:text-rose-100'
@@ -121,6 +122,20 @@ export function AccountStatusBanner() {
                 {username || '-'}
               </span>
             </div>
+
+            {qrOk && (
+              <div className='flex flex-col items-center gap-1'>
+                <img
+                  src='/api/group-qrcode'
+                  alt={t('WeChat Group QR Code')}
+                  className='h-44 w-44 rounded-md border object-contain'
+                  onError={() => setQrOk(false)}
+                />
+                <span className='text-muted-foreground text-xs'>
+                  {t('Scan to join our WeChat group')}
+                </span>
+              </div>
+            )}
 
             <div className='flex flex-col gap-1.5'>
               <span className='font-medium'>{t('How to get approved')}</span>

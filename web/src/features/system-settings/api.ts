@@ -105,3 +105,26 @@ export async function fetchUpstreamRatios(request: FetchUpstreamRatiosRequest) {
   )
   return res.data
 }
+
+/**
+ * Upload the WeChat group QR code (admin, multipart form field "file")
+ */
+export async function uploadGroupQrcode(
+  file: File
+): Promise<{ success: boolean; message?: string }> {
+  const form = new FormData()
+  form.append('file', file)
+  const res = await api.post('/api/option/group-qrcode', form)
+  return res.data
+}
+
+/**
+ * Remove the current WeChat group QR code (admin)
+ */
+export async function deleteGroupQrcode(): Promise<{
+  success: boolean
+  message?: string
+}> {
+  const res = await api.delete('/api/option/group-qrcode')
+  return res.data
+}

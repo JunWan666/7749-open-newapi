@@ -23,6 +23,7 @@ import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { LayoutProvider } from '@/context/layout-provider'
 import { SearchProvider } from '@/context/search-provider'
 import { getCookie } from '@/lib/cookies'
+import { useAuthStore } from '@/stores/auth-store'
 import { cn } from '@/lib/utils'
 
 import { AppHeader } from './app-header'
@@ -34,6 +35,10 @@ type AuthenticatedLayoutProps = {
 
 export function AuthenticatedLayout(props: AuthenticatedLayoutProps) {
   const defaultOpen = getCookie('sidebar_state') !== 'false'
+  const userStatus = useAuthStore((state) => state.auth.user?.status)
+  // pending review / suspicious accounts get a 44px banner, subtract it from the
+  // inset height so the sidebar and content never overflow the viewport.
+  const hasStatusBanner = userStatus === 3 || userStatus === 4
 
   return (
     <LayoutProvider>
@@ -47,7 +52,9 @@ export function AuthenticatedLayout(props: AuthenticatedLayoutProps) {
             <SidebarInset
               className={cn(
                 '@container/content',
-                'h-[calc(100svh-var(--app-header-height,0px))]',
+                hasStatusBanner
+                  ? 'h-[calc(100svh-var(--app-header-height,0px)-2.75rem)]'
+                  : 'h-[calc(100svh-var(--app-header-height,0px))]',
                 'min-h-0 overflow-hidden',
                 'peer-data-[variant=inset]:h-[calc(100svh-var(--app-header-height,0px)-(var(--spacing)*4))]'
               )}
