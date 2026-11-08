@@ -32,6 +32,8 @@ const PERIODS: { id: RankingPeriod; labelKey: string }[] = [
 type RankingsHeroProps = {
   period: RankingPeriod
   onPeriodChange: (period: RankingPeriod) => void
+  /** Period switch only makes sense for the platform ranking tab. */
+  showPeriod?: boolean
 }
 
 /**
@@ -55,6 +57,7 @@ export function RankingsHero(props: RankingsHeroProps) {
       </div>
 
       {/* Underline tabs for period — clean and unobtrusive. */}
+      {props.showPeriod !== false && (
       <div
         role='tablist'
         aria-label={t('Period')}
@@ -88,6 +91,7 @@ export function RankingsHero(props: RankingsHeroProps) {
           )
         })}
       </div>
+      )}
     </section>
   )
 }

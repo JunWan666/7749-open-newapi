@@ -28,6 +28,7 @@ type TopUserRow = {
   user: string
   calls: number
   quota: number
+  tokens: number
 }
 
 type TopUsersResponse = {
@@ -45,16 +46,33 @@ async function fetchTopUsers(days: number): Promise<TopUsersResponse> {
   return (await res.json()) as TopUsersResponse
 }
 
-/** quota 换算：1 元 = 500000 quota（按次计费 0.01 元 = 5000 quota） */
+/** quota 换算：1 美元 = 500000 quota（按次计费 0.01 美元 = 5000 quota） */
 function formatMoney(quota: number): string {
-  const yuan = quota / 500000
-  if (yuan >= 10000) {
-    return `¥${(yuan / 10000).toFixed(1)} 万`
+  const usd = quota / 500000
+  if (usd >= 1000000) {
+    return `$${(usd / 1000000).toFixed(2)}M`
   }
-  if (yuan >= 100) {
-    return `¥${Math.round(yuan).toLocaleString()}`
+  if (usd >= 10000) {
+    return `$${(usd / 1000).toFixed(1)}k`
   }
-  return `¥${yuan.toFixed(2)}`
+  if (usd >= 100) {
+    return `$${Math.round(usd).toLocaleString()}`
+  }
+  return `$${usd.toFixed(2)}`
+}
+
+/** token 数量格式化：亿 / 万 */
+function formatTokens(value: number): string {
+  if (!value) {
+    return '-'
+  }
+  if (value >= 100000000) {
+    return `${(value / 100000000).toFixed(2)} 亿`
+  }
+  if (value >= 10000) {
+    return `${(value / 10000).toFixed(1)} 万`
+  }
+  return value.toLocaleString()
 }
 
 const MEDAL_COLORS = [
@@ -152,6 +170,8 @@ export function TopUsersSection() {
                   </span>
                   <span className='text-muted-foreground shrink-0 text-xs tabular-nums'>
                     {row.calls.toLocaleString()} {t('calls')}
+                    <span className='mx-1 opacity-40'>·</span>
+                    {formatTokens(row.tokens)} token
                   </span>
                 </div>
                 <div className='bg-muted mt-1.5 h-1.5 overflow-hidden rounded-full'>
