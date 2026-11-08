@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import type { ColumnDef } from '@tanstack/react-table'
+import { useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 
 import { BadgeCell } from '@/components/data-table'
@@ -41,9 +42,11 @@ import {
 import type { User } from '../types'
 import { DataTableRowActions } from './data-table-row-actions'
 import { UserQuotaCell } from './user-quota-cell'
+import { UserRemarkCell } from './user-remark-cell'
 
 export function useUsersColumns(): ColumnDef<User>[] {
   const { t } = useTranslation()
+  const queryClient = useQueryClient()
   return [
     {
       id: 'select',
@@ -88,7 +91,6 @@ export function useUsersColumns(): ColumnDef<User>[] {
       cell: ({ row }) => {
         const username = row.getValue('username') as string
         const displayName = row.original.display_name
-        const remark = row.original.remark
 
         return (
           <div className='flex min-w-[160px] flex-col gap-1'>
@@ -96,18 +98,6 @@ export function useUsersColumns(): ColumnDef<User>[] {
               <LongText className='max-w-[140px] font-medium'>
                 {username}
               </LongText>
-              {remark && (
-                <Tooltip>
-                  <TooltipTrigger
-                    render={<StatusBadge variant='success' copyable={false} />}
-                  >
-                    <LongText className='max-w-[80px]'>{remark}</LongText>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className='text-xs'>{remark}</p>
-                  </TooltipContent>
-                </Tooltip>
-              )}
             </div>
             {displayName && displayName !== username && (
               <LongText className='text-muted-foreground max-w-[180px] text-xs'>
@@ -120,6 +110,38 @@ export function useUsersColumns(): ColumnDef<User>[] {
       enableHiding: false,
       size: 220,
       meta: { mobileTitle: true },
+    },
+    {
+      accessorKey: 'remark',
+      header: t('Remark'),
+      cell: ({ row }) => (
+        <UserRemarkCell
+          userId={row.original.id}
+          remark={row.original.remark}
+          onSaved={() => {
+            void queryClient.invalidateQueries({ queryKey: ['users'] })
+          }}
+        />
+      ),
+      enableSorting: false,
+      size: 170,
+    },
+    {
+      accessorKey: 'email',
+      header: t('Email'),
+      cell: ({ row }) => {
+        const email = row.getValue('email') as string | undefined
+        if (!email) {
+          return <span className='text-muted-foreground/50 text-xs'>-</span>
+        }
+        return (
+          <LongText className='text-muted-foreground max-w-[180px] text-xs'>
+            {email}
+          </LongText>
+        )
+      },
+      enableSorting: false,
+      size: 200,
     },
     {
       accessorKey: 'status',

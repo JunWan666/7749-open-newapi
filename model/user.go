@@ -1344,6 +1344,11 @@ func UpdateUserLastLoginAt(id int) {
 	}
 }
 
+// UpdateUserRemark updates only the remark field, used by inline editing in the admin user table.
+func UpdateUserRemark(id int, remark string) error {
+	return DB.Model(&User{}).Where("id = ?", id).Update("remark", remark).Error
+}
+
 func UpdateUserUsedQuotaAndRequestCount(id int, quota int) {
 	if common.BatchUpdateEnabled {
 		addNewRecord(BatchUpdateTypeUsedQuota, id, quota)

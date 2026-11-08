@@ -201,6 +201,17 @@ export async function adminClearUserBinding(
 }
 
 /**
+ * Update only a user's remark (admin, inline edit)
+ */
+export async function updateUserRemark(
+  id: number,
+  remark: string
+): Promise<ApiResponse<{ remark: string }>> {
+  const res = await api.put(`/api/user/${id}/remark`, { remark })
+  return res.data
+}
+
+/**
  * Unbind custom OAuth for a user (admin)
  */
 export async function adminUnbindCustomOAuth(

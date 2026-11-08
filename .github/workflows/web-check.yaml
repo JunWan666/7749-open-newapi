@@ -1,0 +1,40 @@
+# 前端类型与 lint 检查（不产出产物，只做质量门禁）
+# 手动触发或动到 web/ 的 PR 时运行。
+
+name: Web Check
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'web/**'
+      - '.github/workflows/web-check.yaml'
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: typecheck + lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Lint
+        run: bun run lint

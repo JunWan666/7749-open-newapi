@@ -739,6 +739,56 @@ func UpdateUser(c *gin.Context) {
 	return
 }
 
+// UpdateUserRemark updates only a user's remark. Used by inline editing in the admin user table,
+// so it skips the heavy logic in UpdateUser (password, permissions, session revocation).
+func UpdateUserRemark(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil || id <= 0 {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+
+	var req struct {
+		Remark string `json:"remark"`
+	}
+	if err := common.DecodeJson(c.Request.Body, &req); err != nil {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+
+	remark := strings.TrimSpace(req.Remark)
+	if len([]rune(remark)) > 255 {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+
+	targetUser, err := model.GetUserById(id, false)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	if !canManageTargetRole(c.GetInt("role"), targetUser.Role) {
+		common.ApiErrorI18n(c, i18n.MsgUserNoPermissionSameLevel)
+		return
+	}
+
+	if err := model.UpdateUserRemark(id, remark); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+
+	recordManageAuditFor(c, id, "user.remark_update", map[string]interface{}{
+		"username": targetUser.Username,
+		"remark":   remark,
+	})
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "",
+		"data":    gin.H{"remark": remark},
+	})
+}
+
 func AdminClearUserBinding(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {

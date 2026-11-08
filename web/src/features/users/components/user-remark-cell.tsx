@@ -1,0 +1,121 @@
+/*
+Copyright (C) 2023-2026 QuantumNous
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com
+*/
+import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
+
+import { Input } from '@/components/ui/input'
+
+import { updateUserRemark } from '../api'
+
+interface UserRemarkCellProps {
+  userId: number
+  remark?: string
+  onSaved?: () => void
+}
+
+export function UserRemarkCell(props: UserRemarkCellProps) {
+  const { t } = useTranslation()
+  const [editing, setEditing] = useState(false)
+  const [value, setValue] = useState(props.remark ?? '')
+  const [saving, setSaving] = useState(false)
+  const savingRef = useRef(false)
+  const skipSaveRef = useRef(false)
+
+  useEffect(() => {
+    if (!editing) {
+      setValue(props.remark ?? '')
+    }
+  }, [props.remark, editing])
+
+  async function save() {
+    if (savingRef.current) {
+      return
+    }
+    const next = value.trim()
+    if (next === (props.remark ?? '')) {
+      setEditing(false)
+      return
+    }
+
+    savingRef.current = true
+    setSaving(true)
+    try {
+      const res = await updateUserRemark(props.userId, next)
+      if (res?.success) {
+        toast.success(t('Saved'))
+        setEditing(false)
+        props.onSaved?.()
+      } else {
+        toast.error(res?.message || t('Save failed'))
+      }
+    } catch {
+      toast.error(t('Save failed'))
+    } finally {
+      savingRef.current = false
+      setSaving(false)
+    }
+  }
+
+  if (editing) {
+    return (
+      <Input
+        autoFocus
+        maxLength={255}
+        value={value}
+        disabled={saving}
+        placeholder={t('Remark')}
+        className='h-7 w-[150px] text-xs'
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={() => {
+          if (skipSaveRef.current) {
+            skipSaveRef.current = false
+            return
+          }
+          void save()
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault()
+            e.currentTarget.blur()
+          } else if (e.key === 'Escape') {
+            skipSaveRef.current = true
+            setValue(props.remark ?? '')
+            setEditing(false)
+          }
+        }}
+      />
+    )
+  }
+
+  return (
+    <button
+      type='button'
+      title={props.remark || t('Remark')}
+      className='hover:bg-muted w-[150px] cursor-pointer truncate rounded px-1.5 py-1 text-left text-xs transition-colors'
+      onClick={() => setEditing(true)}
+    >
+      {props.remark ? (
+        <span>{props.remark}</span>
+      ) : (
+        <span className='text-muted-foreground/50'>{t('Remark')}</span>
+      )}
+    </button>
+  )
+}
