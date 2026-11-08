@@ -16,39 +16,21 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/定制版-7749公益-c27a4d?style=flat-square" alt="7749 定制版" />
-  <img src="https://img.shields.io/badge/镜像-ghcr.io-2496ED?style=flat-square&logo=docker&logoColor=white" alt="ghcr.io 镜像" />
-  <img src="https://img.shields.io/badge/基于-v1.0.0--rc.25-6B7280?style=flat-square" alt="基线上游版本" />
+  <img src="https://img.shields.io/badge/基线-v1.0.0--rc.25-6B7280?style=flat-square" alt="基线上游版本" />
 </p>
 
 > **这是 7749 公益站的定制版本**，基于上游 `v1.0.0-rc.25` 二次开发。
 > 下面的功能介绍、截图与文档均来自上游项目，本仓库的改动统一登记在 [7749-MODIFICATIONS.md](./7749-MODIFICATIONS.md)。
 
 <p align="center">
-  <a href="https://raw.githubusercontent.com/Calcium-Ion/new-api/main/LICENSE">
-    <img src="https://img.shields.io/github/license/Calcium-Ion/new-api?color=brightgreen" alt="license">
+  <a href="https://raw.githubusercontent.com/JunWan666/7749-open-newapi/main/LICENSE">
+    <img src="https://img.shields.io/github/license/JunWan666/7749-open-newapi?color=brightgreen" alt="license">
   </a><!--
-  --><a href="https://github.com/Calcium-Ion/new-api/releases/latest">
-    <img src="https://img.shields.io/github/v/release/Calcium-Ion/new-api?color=brightgreen&include_prereleases" alt="release">
+  --><a href="https://github.com/JunWan666/7749-open-newapi/releases/latest">
+    <img src="https://img.shields.io/github/v/release/JunWan666/7749-open-newapi?color=brightgreen&include_prereleases" alt="release">
   </a><!--
-  --><a href="https://hub.docker.com/r/CalciumIon/new-api">
-    <img src="https://img.shields.io/badge/docker-dockerHub-blue" alt="docker">
-  </a>
-  <a href="https://atomgit.com/QuantumNous/new-api" target="_blank">
-    <img alt="AtomGit G-Star" src="https://atomgit.com/QuantumNous/new-api/star/badge.svg"/>
-  </a>
-</p>
-
-<p align="center">
-  <a href="https://trendshift.io/repositories/20180" target="_blank">
-    <img src="https://trendshift.io/api/badge/repositories/20180" alt="QuantumNous%2Fnew-api | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/>
-  </a>
-  <br>
-  <a href="https://hellogithub.com/repository/QuantumNous/new-api" target="_blank">
-    <img src="https://api.hellogithub.com/v1/widgets/recommend.svg?rid=539ac4217e69431684ad4a0bab768811&claim_uid=tbFPfKIDHpc4TzR" alt="Featured｜HelloGitHub" style="width: 250px; height: 54px;" width="250" height="54" />
-  </a><!--
-  -->
-  <a href="https://atomgit.com/QuantumNous/new-api" target="_blank">
-    <img alt="AtomGit G-Star" src="https://atomgit.com/QuantumNous/new-api/star/new_badge.svg" width="250" height="55" />
+  --><a href="https://github.com/JunWan666/7749-open-newapi/pkgs/container/7749-open-newapi">
+    <img src="https://img.shields.io/badge/image-ghcr.io-2496ED?logo=docker&logoColor=white" alt="docker">
   </a>
 </p>
 

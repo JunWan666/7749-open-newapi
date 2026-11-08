@@ -16,7 +16,6 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/fork-7749%20custom-c27a4d?style=flat-square" alt="7749 custom fork" />
-  <img src="https://img.shields.io/badge/image-ghcr.io-2496ED?style=flat-square&logo=docker&logoColor=white" alt="ghcr.io image" />
   <img src="https://img.shields.io/badge/based%20on-v1.0.0--rc.25-6B7280?style=flat-square" alt="based on upstream rc.25" />
 </p>
 
@@ -24,31 +23,14 @@
 > Everything below is upstream documentation; our changes are tracked in [7749-MODIFICATIONS.md](./7749-MODIFICATIONS.md) — 中文说明见 [README.zh_CN.md](./README.zh_CN.md).
 
 <p align="center">
-  <a href="https://raw.githubusercontent.com/Calcium-Ion/new-api/main/LICENSE">
-    <img src="https://img.shields.io/github/license/Calcium-Ion/new-api?color=brightgreen" alt="license">
+  <a href="https://raw.githubusercontent.com/JunWan666/7749-open-newapi/main/LICENSE">
+    <img src="https://img.shields.io/github/license/JunWan666/7749-open-newapi?color=brightgreen" alt="license">
   </a><!--
-  --><a href="https://github.com/Calcium-Ion/new-api/releases/latest">
-    <img src="https://img.shields.io/github/v/release/Calcium-Ion/new-api?color=brightgreen&include_prereleases" alt="release">
+  --><a href="https://github.com/JunWan666/7749-open-newapi/releases/latest">
+    <img src="https://img.shields.io/github/v/release/JunWan666/7749-open-newapi?color=brightgreen&include_prereleases" alt="release">
   </a><!--
-  --><a href="https://hub.docker.com/r/CalciumIon/new-api">
-    <img src="https://img.shields.io/badge/docker-dockerHub-blue" alt="docker">
-  </a>
-  <a href="https://atomgit.com/QuantumNous/new-api" target="_blank">
-    <img alt="AtomGit G-Star" src="https://atomgit.com/QuantumNous/new-api/star/badge.svg"/>
-  </a>
-</p>
-
-<p align="center">
-  <a href="https://trendshift.io/repositories/20180" target="_blank">
-    <img src="https://trendshift.io/api/badge/repositories/20180" alt="QuantumNous%2Fnew-api | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/>
-  </a>
-  <br>
-  <a href="https://hellogithub.com/repository/QuantumNous/new-api" target="_blank">
-    <img src="https://api.hellogithub.com/v1/widgets/recommend.svg?rid=539ac4217e69431684ad4a0bab768811&claim_uid=tbFPfKIDHpc4TzR" alt="Featured｜HelloGitHub" style="width: 250px; height: 54px;" width="250" height="54" />
-  </a><!--
-  -->
-  <a href="https://atomgit.com/QuantumNous/new-api" target="_blank">
-    <img alt="AtomGit G-Star" src="https://atomgit.com/QuantumNous/new-api/star/new_badge.svg" width="250" height="55" />
+  --><a href="https://github.com/JunWan666/7749-open-newapi/pkgs/container/7749-open-newapi">
+    <img src="https://img.shields.io/badge/image-ghcr.io-2496ED?logo=docker&logoColor=white" alt="docker">
   </a>
 </p>
 
@@ -61,6 +43,28 @@
 </p>
 
 </div>
+
+## 🔧 About this fork (7749)
+
+This repository is a customized fork of [New API](https://github.com/QuantumNous/new-api) running the **7749** AI gateway site. **Only the differences from upstream are listed here** — everything below is upstream documentation.
+
+| Item | Upstream | This repo (7749) |
+| --- | --- | --- |
+| Image build | Upstream CI, multi-arch | GitHub Actions from source, `linux/amd64`, ~6 min |
+| Image | `calciumion/new-api` (Docker Hub) | `ghcr.io/junwan666/7749-open-newapi` (GHCR, public) |
+| Version | `v1.0.0-rc.X` | `v1.0.0-rc.25-7749.N` (upstream version + fork number) |
+| Changes | — | None yet, behavior matches `rc.25` |
+
+```bash
+docker pull ghcr.io/junwan666/7749-open-newapi:latest
+```
+
+Swap the image and restart the container — data lives in the PostgreSQL volume, and rolling back within the same upstream version is safe.
+
+> New features will be listed in the table above and in [7749-MODIFICATIONS.md](./7749-MODIFICATIONS.md). 中文说明见 [README.zh_CN.md](./README.zh_CN.md).
+> This instance serves the public, so under AGPL-3.0 the complete corresponding source for the image is this repository.
+
+---
 
 ## 📝 Project Description
 
