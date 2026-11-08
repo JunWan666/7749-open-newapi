@@ -34,6 +34,8 @@ type AnomalyUser = {
   id: number
   username: string
   status: number
+  role: number
+  remark: string
   register_ip: string
   last_login_ip: string
   created_at: number
@@ -94,6 +96,13 @@ export function UserAnomalies() {
   }
 
   function actionButtons(user: AnomalyUser) {
+    if (user.role >= 10) {
+      return (
+        <span className='text-muted-foreground text-[11px]'>
+          {t('Admin account')}
+        </span>
+      )
+    }
     if (user.status === STATUS_SUSPICIOUS) {
       return (
         <Button
@@ -211,6 +220,21 @@ export function UserAnomalies() {
                           <span className='min-w-[100px] font-medium'>
                             {user.username}
                           </span>
+                          {user.role >= 10 && (
+                            <StatusBadge
+                              label={t('Admin')}
+                              variant='info'
+                              copyable={false}
+                            />
+                          )}
+                          {user.remark && (
+                            <span className='text-success font-medium'>
+                              {user.remark}
+                            </span>
+                          )}
+                          <span className='text-muted-foreground font-mono'>
+                            {user.register_ip || user.last_login_ip || '-'}
+                          </span>
                           <span className='text-muted-foreground'>
                             {t('Registered')}:{' '}
                             {formatTimestamp(user.created_at)}
@@ -261,6 +285,18 @@ export function UserAnomalies() {
                     <span className='min-w-[100px] font-medium'>
                       {user.username}
                     </span>
+                    {user.role >= 10 && (
+                      <StatusBadge
+                        label={t('Admin')}
+                        variant='info'
+                        copyable={false}
+                      />
+                    )}
+                    {user.remark && (
+                      <span className='text-success font-medium'>
+                        {user.remark}
+                      </span>
+                    )}
                     <span className='text-muted-foreground'>
                       {t('Check-ins')}: {user.checkin_days}
                     </span>

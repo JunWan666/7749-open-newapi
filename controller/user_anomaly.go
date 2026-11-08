@@ -13,6 +13,8 @@ type AnomalyUser struct {
 	Id           int    `json:"id"`
 	Username     string `json:"username"`
 	Status       int    `json:"status"`
+	Role         int    `json:"role"`
+	Remark       string `json:"remark"`
 	RegisterIp   string `json:"register_ip"`
 	LastLoginIp  string `json:"last_login_ip"`
 	CreatedAt    int64  `json:"created_at"`
@@ -56,7 +58,8 @@ func GetUserAnomalies(c *gin.Context) {
 
 	for _, row := range counts {
 		var users []AnomalyUser
-		userQuery := `SELECT id, username, status, COALESCE(register_ip,'') AS register_ip,
+		userQuery := `SELECT id, username, status, role, COALESCE(remark,'') AS remark,
+			COALESCE(register_ip,'') AS register_ip,
 			COALESCE(last_login_ip,'') AS last_login_ip, created_at, request_count
 			FROM users
 			WHERE deleted_at IS NULL AND (
@@ -75,12 +78,13 @@ func GetUserAnomalies(c *gin.Context) {
 	}
 
 	// --- 2. check-in only accounts (never called the API) ---
-	idleQuery := `SELECT u.id, u.username, u.status, COALESCE(u.register_ip,'') AS register_ip,
+	idleQuery := `SELECT u.id, u.username, u.status, u.role, COALESCE(u.remark,'') AS remark,
+		COALESCE(u.register_ip,'') AS register_ip,
 		COALESCE(u.last_login_ip,'') AS last_login_ip, u.created_at, u.request_count,
 		count(c.id) AS checkin_days
 		FROM users u JOIN checkins c ON c.user_id = u.id
 		WHERE u.deleted_at IS NULL AND u.request_count = 0
-		GROUP BY u.id, u.username, u.status, u.register_ip, u.last_login_ip, u.created_at, u.request_count
+		GROUP BY u.id, u.username, u.status, u.role, u.remark, u.register_ip, u.last_login_ip, u.created_at, u.request_count
 		ORDER BY checkin_days DESC, u.id DESC LIMIT 50`
 	if err := model.DB.Raw(idleQuery).Scan(&idleUsers).Error; err != nil {
 		common.ApiError(c, err)
