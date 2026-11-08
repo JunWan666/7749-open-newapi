@@ -1361,6 +1361,11 @@ func UpdateUserLastLoginInfo(id int, ip string) {
 	}
 }
 
+// UpdateUserStatus updates only the status field, used by the admin inline status switch.
+func UpdateUserStatus(id int, status int) error {
+	return DB.Model(&User{}).Where("id = ?", id).Update("status", status).Error
+}
+
 // UpdateUserRemark updates only the remark field, used by inline editing in the admin user table.
 func UpdateUserRemark(id int, remark string) error {
 	return DB.Model(&User{}).Where("id = ?", id).Update("remark", remark).Error

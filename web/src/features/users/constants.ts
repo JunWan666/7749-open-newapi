@@ -35,6 +35,8 @@ export const isUserDeleted = (user: UserType): boolean => {
 export const USER_STATUS = {
   ENABLED: 1,
   DISABLED: 2,
+  PENDING: 3,
+  SUSPICIOUS: 4,
   DELETED: -1,
 } as const
 
@@ -49,6 +51,16 @@ export const USER_STATUSES = {
     variant: 'neutral' as const,
     value: USER_STATUS.DISABLED,
   },
+  [USER_STATUS.PENDING]: {
+    labelKey: 'Pending Review',
+    variant: 'info' as const,
+    value: USER_STATUS.PENDING,
+  },
+  [USER_STATUS.SUSPICIOUS]: {
+    labelKey: 'Suspicious',
+    variant: 'warning' as const,
+    value: USER_STATUS.SUSPICIOUS,
+  },
   [USER_STATUS.DELETED]: {
     labelKey: 'Deleted',
     variant: 'danger' as const,
@@ -56,8 +68,18 @@ export const USER_STATUSES = {
   },
 } as const
 
+/** Statuses an admin can switch between from the user table. */
+export const EDITABLE_USER_STATUSES = [
+  USER_STATUS.ENABLED,
+  USER_STATUS.PENDING,
+  USER_STATUS.SUSPICIOUS,
+  USER_STATUS.DISABLED,
+] as const
+
 export const getUserStatusOptions = (t: (key: string) => string) => [
   { label: t('Enabled'), value: String(USER_STATUS.ENABLED) },
+  { label: t('Pending Review'), value: String(USER_STATUS.PENDING) },
+  { label: t('Suspicious'), value: String(USER_STATUS.SUSPICIOUS) },
   { label: t('Disabled'), value: String(USER_STATUS.DISABLED) },
   { label: t('Deleted'), value: String(USER_STATUS.DELETED) },
 ]

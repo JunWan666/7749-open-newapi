@@ -223,9 +223,23 @@ var (
 var RateLimitKeyExpirationDuration = 20 * time.Minute
 
 const (
-	UserStatusEnabled  = 1 // don't use 0, 0 is the default value!
-	UserStatusDisabled = 2 // also don't use 0
+	UserStatusEnabled    = 1 // don't use 0, 0 is the default value!
+	UserStatusDisabled   = 2 // also don't use 0
+	UserStatusPending    = 3 // registered but waiting for group / admin review
+	UserStatusSuspicious = 4 // flagged account: may sign in, only free NVIDIA (ywd/*) models
 )
+
+// UserStatusAllowsSignIn reports whether the given status may sign in to the dashboard.
+// Pending and suspicious users can log in so they can see the review notice.
+func UserStatusAllowsSignIn(status int) bool {
+	return status == UserStatusEnabled || status == UserStatusPending || status == UserStatusSuspicious
+}
+
+// UserStatusAllowsApiAccess reports whether the given status may call relay APIs.
+// Suspicious accounts are allowed here and get restricted to free models later on.
+func UserStatusAllowsApiAccess(status int) bool {
+	return status == UserStatusEnabled || status == UserStatusSuspicious
+}
 
 const (
 	TokenStatusEnabled   = 1 // don't use 0, 0 is the default value!

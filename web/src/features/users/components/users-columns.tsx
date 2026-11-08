@@ -33,17 +33,13 @@ import {
 } from '@/components/ui/tooltip'
 import { formatQuota, formatTimestamp } from '@/lib/format'
 
-import {
-  USER_STATUS,
-  USER_STATUSES,
-  USER_ROLES,
-  isUserDeleted,
-} from '../constants'
+import { USER_ROLES } from '../constants'
 import type { User } from '../types'
 import { DataTableRowActions } from './data-table-row-actions'
 import { EmailMaskHeaderButton, UserEmailCell } from './user-email-cell'
 import { UserQuotaCell } from './user-quota-cell'
 import { UserRemarkCell } from './user-remark-cell'
+import { UserStatusCell } from './user-status-cell'
 
 export function useUsersColumns(): ColumnDef<User>[] {
   const { t } = useTranslation()
@@ -139,35 +135,7 @@ export function useUsersColumns(): ColumnDef<User>[] {
     {
       accessorKey: 'status',
       header: t('Status'),
-      cell: ({ row }) => {
-        const user = row.original
-        const requestCount = user.request_count
-
-        const statusConfig = isUserDeleted(user)
-          ? USER_STATUSES[USER_STATUS.DELETED]
-          : USER_STATUSES[user.status as keyof typeof USER_STATUSES]
-
-        if (!statusConfig) {
-          return null
-        }
-
-        return (
-          <Tooltip>
-            <TooltipTrigger render={<div className='-ml-1.5 cursor-help' />}>
-              <StatusBadge
-                label={t(statusConfig.labelKey)}
-                variant={statusConfig.variant}
-                copyable={false}
-              />
-            </TooltipTrigger>
-            <TooltipContent>
-              <p className='text-xs'>
-                {t('Requests:')} {requestCount.toLocaleString()}
-              </p>
-            </TooltipContent>
-          </Tooltip>
-        )
-      },
+      cell: ({ row }) => <UserStatusCell user={row.original} />,
       filterFn: (row, id, value) => {
         return value.includes(String(row.getValue(id)))
       },

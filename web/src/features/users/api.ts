@@ -212,6 +212,17 @@ export async function updateUserRemark(
 }
 
 /**
+ * Update only a user's status (admin, inline switch)
+ */
+export async function updateUserStatus(
+  id: number,
+  status: number
+): Promise<ApiResponse<{ status: number }>> {
+  const res = await api.put(`/api/user/${id}/status`, { status })
+  return res.data
+}
+
+/**
  * Unbind custom OAuth for a user (admin)
  */
 export async function adminUnbindCustomOAuth(

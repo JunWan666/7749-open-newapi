@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
@@ -48,6 +49,12 @@ func DoCheckin(c *gin.Context) {
 	setting := operation_setting.GetCheckinSetting()
 	if !setting.Enabled {
 		common.ApiErrorMsg(c, "签到功能未启用")
+		return
+	}
+
+	// Pending accounts must wait for review before earning check-in quota.
+	if common.GetContextKeyInt(c, constant.ContextKeyUserStatus) == common.UserStatusPending {
+		common.ApiErrorMsg(c, "账号待审核，通过审核后即可签到")
 		return
 	}
 

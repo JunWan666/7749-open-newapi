@@ -48,7 +48,7 @@ func authHelper(c *gin.Context, minRole int) {
 		writeDashboardAuthError(c, err)
 		return
 	}
-	if user.Status != common.UserStatusEnabled {
+	if !common.UserStatusAllowsSignIn(user.Status) {
 		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"success": false, "code": "AUTH_USER_DISABLED", "message": common.TranslateMessage(c, i18n.MsgAuthUserBanned)})
 		return
 	}
@@ -333,10 +333,14 @@ func TokenAuthReadOnly() func(c *gin.Context) {
 			c.Abort()
 			return
 		}
-		if userCache.Status != common.UserStatusEnabled {
+		if !common.UserStatusAllowsApiAccess(userCache.Status) {
+			msg := common.TranslateMessage(c, i18n.MsgAuthUserBanned)
+			if userCache.Status == common.UserStatusPending {
+				msg = "账号待审核：请加入微信群联系管理员审核后再使用"
+			}
 			c.JSON(http.StatusForbidden, gin.H{
 				"success": false,
-				"message": common.TranslateMessage(c, i18n.MsgAuthUserBanned),
+				"message": msg,
 			})
 			c.Abort()
 			return
@@ -448,9 +452,12 @@ func TokenAuth() func(c *gin.Context) {
 				common.TranslateMessage(c, i18n.MsgDatabaseError))
 			return
 		}
-		userEnabled := userCache.Status == common.UserStatusEnabled
-		if !userEnabled {
-			abortWithOpenAiMessage(c, http.StatusForbidden, common.TranslateMessage(c, i18n.MsgAuthUserBanned))
+		if !common.UserStatusAllowsApiAccess(userCache.Status) {
+			msg := common.TranslateMessage(c, i18n.MsgAuthUserBanned)
+			if userCache.Status == common.UserStatusPending {
+				msg = "账号待审核：请加入微信群联系管理员审核后再使用"
+			}
+			abortWithOpenAiMessage(c, http.StatusForbidden, msg)
 			return
 		}
 

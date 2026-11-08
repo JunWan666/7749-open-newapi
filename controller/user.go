@@ -269,6 +269,7 @@ func Register(c *gin.Context) {
 		InviterId:   inviterId,
 		Role:        common.RoleCommonUser, // 明确设置角色为普通用户
 		RegisterIp:  c.ClientIP(),
+		Status:      common.UserStatusPending, // 新注册账号默认待审核，进群确认后由管理员启用
 	}
 	if common.EmailVerificationEnabled {
 		cleanUser.Email = user.Email
@@ -787,6 +788,65 @@ func UpdateUserRemark(c *gin.Context) {
 		"success": true,
 		"message": "",
 		"data":    gin.H{"remark": remark},
+	})
+}
+
+// UpdateUserStatus changes only the status of a user (admin inline switch).
+// Used to move accounts between enabled / disabled / pending review / suspicious.
+func UpdateUserStatus(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil || id <= 0 {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+
+	var req struct {
+		Status int `json:"status"`
+	}
+	if err := common.DecodeJson(c.Request.Body, &req); err != nil {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+
+	switch req.Status {
+	case common.UserStatusEnabled, common.UserStatusDisabled, common.UserStatusPending, common.UserStatusSuspicious:
+	default:
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+
+	targetUser, err := model.GetUserById(id, false)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	if !canManageTargetRole(c.GetInt("role"), targetUser.Role) {
+		common.ApiErrorI18n(c, i18n.MsgUserNoPermissionSameLevel)
+		return
+	}
+	if targetUser.Id == c.GetInt("id") {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+
+	if err := model.UpdateUserStatus(id, req.Status); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	// Refresh the auth cache so the new status takes effect immediately.
+	if err := model.PublishUserAuthCache(id); err != nil {
+		common.SysLog("failed to refresh user auth cache: " + err.Error())
+	}
+
+	recordManageAuditFor(c, id, "user.status_update", map[string]interface{}{
+		"username": targetUser.Username,
+		"status":   req.Status,
+	})
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "",
+		"data":    gin.H{"status": req.Status},
 	})
 }
 

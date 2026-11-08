@@ -82,6 +82,13 @@ func Distribute() func(c *gin.Context) {
 					abortWithOpenAiMessage(c, http.StatusBadRequest, i18n.T(c, i18n.MsgDistributorModelNameRequired))
 					return
 				}
+				// Suspicious accounts may only use the free NVIDIA models (ywd/* prefix).
+				if common.GetContextKeyInt(c, constant.ContextKeyUserStatus) == common.UserStatusSuspicious &&
+					!strings.HasPrefix(modelRequest.Model, "ywd/") {
+					abortWithOpenAiMessage(c, http.StatusForbidden,
+						"账号状态受限：目前仅可使用英伟达（ywd）模型，如需恢复请联系管理员")
+					return
+				}
 				var selectGroup string
 				usingGroup := common.GetContextKeyString(c, constant.ContextKeyUsingGroup)
 				// check path is /pg/chat/completions

@@ -58,7 +58,7 @@ func createLoginSession(userID int, expectedAuthVersion int64, loginMethod, ip, 
 	if err != nil {
 		return nil, err
 	}
-	if user.Status != common.UserStatusEnabled || user.AuthVersion <= 0 {
+	if !common.UserStatusAllowsSignIn(user.Status) || user.AuthVersion <= 0 {
 		return nil, ErrLoginSessionInvalid
 	}
 	if expectedAuthVersion > 0 && user.AuthVersion != expectedAuthVersion {
@@ -127,7 +127,7 @@ func ValidateLoginSession(identity AuthIdentity) (*model.UserSession, *model.Use
 	if err != nil {
 		return nil, nil, err
 	}
-	if user.Status != common.UserStatusEnabled || user.AuthVersion != identity.UserAuthVersion {
+	if !common.UserStatusAllowsSignIn(user.Status) || user.AuthVersion != identity.UserAuthVersion {
 		return nil, nil, ErrLoginSessionRevoked
 	}
 	return session, user, nil
@@ -175,7 +175,7 @@ func AdvanceCurrentSessionToUserVersion(identity AuthIdentity, reason string) (*
 	if err != nil {
 		return nil, err
 	}
-	if user.Status != common.UserStatusEnabled || user.AuthVersion <= identity.UserAuthVersion {
+	if !common.UserStatusAllowsSignIn(user.Status) || user.AuthVersion <= identity.UserAuthVersion {
 		return nil, ErrLoginSessionRevoked
 	}
 	return advanceCurrentSessionToVersion(identity, user.AuthVersion, reason)
@@ -224,8 +224,8 @@ func RefreshLoginSession(rawRefreshToken, expectedSID, ip, userAgent string) (*A
 	if err != nil {
 		return nil, nil, err
 	}
-	if userCache.Status != common.UserStatusEnabled || userCache.AuthVersion != session.UserAuthVersion ||
-		currentUser.Status != common.UserStatusEnabled || currentUser.AuthVersion != session.UserAuthVersion {
+	if !common.UserStatusAllowsSignIn(userCache.Status) || userCache.AuthVersion != session.UserAuthVersion ||
+		!common.UserStatusAllowsSignIn(currentUser.Status) || currentUser.AuthVersion != session.UserAuthVersion {
 		_, _ = model.RevokeUserSession(session.UserID, session.SID, "user_security_changed")
 		return nil, nil, ErrLoginSessionRevoked
 	}
