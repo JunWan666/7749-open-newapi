@@ -15,11 +15,11 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/定制版-7749公益-c27a4d?style=flat-square" alt="7749 定制版" />
+  <img src="https://img.shields.io/badge/定制版-7749-c27a4d?style=flat-square" alt="7749 定制版" />
   <img src="https://img.shields.io/badge/基线-v1.0.0--rc.25-6B7280?style=flat-square" alt="基线上游版本" />
 </p>
 
-> **这是 7749 公益站的定制版本**，基于上游 `v1.0.0-rc.25` 二次开发。
+> **这是 7749 项目的定制版本**，基于上游 `v1.0.0-rc.25` 二次开发。
 > 下面的功能介绍、截图与文档均来自上游项目，本仓库的改动统一登记在 [7749-MODIFICATIONS.md](./7749-MODIFICATIONS.md)。
 
 <p align="center">
@@ -47,7 +47,7 @@
 
 ## 🔧 7749 定制版说明
 
-本仓库是 [New API](https://github.com/QuantumNous/new-api) 的衍生版本，用于 7749 公益站的实际运行。**这里只写与官方版的差异**，官方功能与用法直接看下文。
+本仓库是 [New API](https://github.com/QuantumNous/new-api) 的衍生版本，用于 7749 站点的实际运行。**这里只写与官方版的差异**，官方功能与用法直接看下文。
 
 | 项目 | 官方版 | 本仓库（7749 版） |
 | --- | --- | --- |

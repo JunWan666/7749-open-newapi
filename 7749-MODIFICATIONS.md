@@ -1,7 +1,7 @@
 # 7749 衍生版本说明
 
 本仓库是 [New API](https://github.com/QuantumNous/new-api)（原 `Calcium-Ion/new-api`）的衍生版本，
-用于 7749 公益站的二次开发。
+用于 7749 站点的二次开发。
 
 - 上游项目：<https://github.com/QuantumNous/new-api>
 - 上游许可证：**AGPL-3.0** —— 原 `LICENSE`、`NOTICE`、`THIRD-PARTY-LICENSES.md` 一律保留原样
