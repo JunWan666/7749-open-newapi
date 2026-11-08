@@ -109,7 +109,7 @@ export function UserRemarkCell(props: UserRemarkCellProps) {
       }}
     >
       {props.remark ? (
-        <span>{props.remark}</span>
+        <span className='text-success font-medium'>{props.remark}</span>
       ) : (
         <span className='text-muted-foreground/50'>{t('Remark')}</span>
       )}

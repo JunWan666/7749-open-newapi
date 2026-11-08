@@ -310,3 +310,19 @@ export function stringToColor(str: string): string {
 
   return `hsl(${hue}, ${saturation}%, ${lightness}%)`
 }
+
+/**
+ * Mask an email for screenshots: `zhangsan@qq.com` -> `z***@qq.com`.
+ */
+export function maskEmail(email: string): string {
+  const at = email.indexOf('@')
+  if (at <= 0) {
+    return '***'
+  }
+  const name = email.slice(0, at)
+  const domain = email.slice(at + 1)
+  if (name.length <= 2) {
+    return `***@${domain}`
+  }
+  return `${name[0]}***@${domain}`
+}

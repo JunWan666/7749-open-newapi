@@ -41,6 +41,7 @@ import {
 } from '../constants'
 import type { User } from '../types'
 import { DataTableRowActions } from './data-table-row-actions'
+import { EmailMaskHeaderButton, UserEmailCell } from './user-email-cell'
 import { UserQuotaCell } from './user-quota-cell'
 import { UserRemarkCell } from './user-remark-cell'
 
@@ -128,20 +129,12 @@ export function useUsersColumns(): ColumnDef<User>[] {
     },
     {
       accessorKey: 'email',
-      header: t('Email'),
-      cell: ({ row }) => {
-        const email = row.getValue('email') as string | undefined
-        if (!email) {
-          return <span className='text-muted-foreground/50 text-xs'>-</span>
-        }
-        return (
-          <LongText className='text-muted-foreground max-w-[180px] text-xs'>
-            {email}
-          </LongText>
-        )
-      },
+      header: () => <EmailMaskHeaderButton />,
+      cell: ({ row }) => (
+        <UserEmailCell userId={row.original.id} email={row.original.email} />
+      ),
       enableSorting: false,
-      size: 200,
+      size: 210,
     },
     {
       accessorKey: 'status',
