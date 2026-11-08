@@ -53,7 +53,7 @@ This repository is a customized fork of [New API](https://github.com/QuantumNous
 | Image build | Upstream CI, multi-arch | GitHub Actions from source, `linux/amd64`, ~6 min |
 | Image | `calciumion/new-api` (Docker Hub) | `ghcr.io/junwan666/7749-open-newapi` (GHCR, public) |
 | Version | `v1.0.0-rc.X` | `v1.0.0-rc.25-7749.N` (upstream version + fork number) |
-| Changes | — | None yet, behavior matches `rc.25` |
+| Changes | — | check-in refreshes activity time, email column, inline remark editing (see [changelog](../../7749-MODIFICATIONS.md)) |
 
 ```bash
 docker pull ghcr.io/junwan666/7749-open-newapi:latest
