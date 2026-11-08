@@ -78,6 +78,8 @@ export function GroupQrcode() {
     : null
   const expired = daysLeft !== null && daysLeft < 0
   const expiringSoon = daysLeft !== null && daysLeft >= 0 && daysLeft <= 3
+  const hasImage = meta.exists && !previewError
+  const imageSrc = `/api/group-qrcode?t=${version}`
 
   const handleFile = useCallback(
     async (file: File) => {
@@ -184,8 +186,43 @@ export function GroupQrcode() {
     )
   }
 
-  const imageSrc = `/api/group-qrcode?t=${version}`
-  const hasImage = meta.exists && !previewError
+  function renderExpiryNotice() {
+    if (daysLeft === null) {
+      return null
+    }
+    if (expired) {
+      return (
+        <div className='border-destructive/30 bg-destructive/10 text-destructive flex w-full items-start gap-2 rounded-md border px-3 py-2 text-xs'>
+          <AlertTriangle className='mt-0.5 size-3.5 shrink-0' />
+          <span>
+            {t(
+              'This QR code has expired. Upload a new WeChat group QR code right away, otherwise users cannot join.'
+            )}
+          </span>
+        </div>
+      )
+    }
+    if (expiringSoon) {
+      return (
+        <div className='border-warning/30 bg-warning/10 flex w-full items-start gap-2 rounded-md border px-3 py-2 text-xs'>
+          <AlertTriangle className='mt-0.5 size-3.5 shrink-0' />
+          <span>
+            {t(
+              'This QR code expires in a few days. Remember to upload a fresh one before it stops working.'
+            )}
+          </span>
+        </div>
+      )
+    }
+    return (
+      <div className='border-success/30 bg-success/10 flex w-full items-start gap-2 rounded-md border px-3 py-2 text-xs'>
+        <CheckCircle2 className='mt-0.5 size-3.5 shrink-0' />
+        <span>
+          {t('QR code is valid until')} {meta.expires_at}
+        </span>
+      </div>
+    )
+  }
 
   return (
     <SectionPageLayout>
@@ -193,19 +230,27 @@ export function GroupQrcode() {
         {t('WeChat Group QR Code')}
       </SectionPageLayout.Title>
       <SectionPageLayout.Content>
-        <div className='flex max-w-3xl flex-col gap-5'>
+        <div className='mx-auto flex w-full max-w-4xl flex-col gap-5'>
           <p className='text-muted-foreground text-sm'>
             {t(
               'Pending-review users see this QR code in their notice so they can join the WeChat group. WeChat codes usually expire after 7 days — record the expiry date so you get a reminder here.'
             )}
           </p>
 
-          <div className='flex flex-wrap items-start gap-6'>
-            <div className='flex flex-col items-center gap-2'>
+          <div className='grid gap-5 lg:grid-cols-[300px_minmax(0,1fr)]'>
+            {/* 预览卡片 */}
+            <div className='bg-card flex flex-col items-center gap-3 rounded-xl border p-4 shadow-sm sm:p-5'>
+              <div className='flex w-full items-center justify-between gap-2'>
+                <span className='text-sm font-semibold'>
+                  {t('Current QR Code')}
+                </span>
+                {renderStatus()}
+              </div>
+
               <button
                 type='button'
                 className={cn(
-                  'bg-muted relative flex h-44 w-44 items-center justify-center overflow-hidden rounded-lg border transition-shadow',
+                  'relative mt-1 flex aspect-square w-full max-w-[240px] items-center justify-center overflow-hidden rounded-lg border bg-white p-2 transition-shadow',
                   hasImage
                     ? 'group hover:ring-primary/40 cursor-zoom-in hover:ring-2'
                     : 'cursor-default'
@@ -230,34 +275,40 @@ export function GroupQrcode() {
                     </span>
                   </>
                 ) : (
-                  <span className='text-muted-foreground px-3 text-center text-xs'>
+                  <span className='text-muted-foreground px-4 text-center text-xs'>
                     {t('No QR code uploaded yet')}
                   </span>
                 )}
               </button>
-              {renderStatus()}
-              {hasImage && (
-                <span className='text-muted-foreground text-[11px]'>
-                  {t('Click the image to enlarge')}
-                </span>
-              )}
+
+              <p className='text-muted-foreground text-center text-[11px]'>
+                {hasImage ? t('Click the image to enlarge') : '\u00a0'}
+              </p>
+
+              {renderExpiryNotice()}
             </div>
 
-            <div className='flex min-w-[280px] flex-1 flex-col gap-3'>
+            {/* 操作卡片 */}
+            <div className='bg-card flex flex-col gap-4 rounded-xl border p-4 shadow-sm sm:p-5'>
               <div className='flex flex-col gap-1.5'>
                 <label
-                  className='text-sm font-medium'
+                  className='text-sm font-semibold'
                   htmlFor='group-qrcode-expiry'
                 >
                   {t('Expiry date on the image (optional)')}
                 </label>
-                <Input
-                  id='group-qrcode-expiry'
-                  type='date'
-                  value={expiresAt}
-                  onChange={(event) => setExpiresAt(event.target.value)}
-                  className='w-48'
-                />
+                <div className='flex flex-wrap items-center gap-2'>
+                  <Input
+                    id='group-qrcode-expiry'
+                    type='date'
+                    value={expiresAt}
+                    onChange={(event) => setExpiresAt(event.target.value)}
+                    className='w-44'
+                  />
+                  <span className='text-muted-foreground text-xs'>
+                    {t('Used for the reminder badge')}
+                  </span>
+                </div>
                 <p className='text-muted-foreground text-xs'>
                   {t(
                     'Paste the date printed on the WeChat QR code, e.g. "valid until Nov 16".'
@@ -304,7 +355,7 @@ export function GroupQrcode() {
                   }
                 }}
                 className={cn(
-                  'flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed px-4 py-7 text-center transition-colors',
+                  'flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-8 text-center transition-colors',
                   dragOver
                     ? 'border-primary bg-primary/5'
                     : 'border-muted-foreground/25 hover:border-primary/60 hover:bg-muted/40'
@@ -312,7 +363,7 @@ export function GroupQrcode() {
               >
                 <ImagePlus
                   className={cn(
-                    'size-7',
+                    'size-8',
                     dragOver ? 'text-primary' : 'text-muted-foreground'
                   )}
                 />
@@ -322,7 +373,8 @@ export function GroupQrcode() {
                     : t('Drop an image here, or click to choose')}
                 </p>
                 <p className='text-muted-foreground text-xs'>
-                  {t('You can also paste with Ctrl+V')}
+                  {t('You can also paste with Ctrl+V')} ·{' '}
+                  {t('PNG / JPG / WebP, up to 2MB.')}
                 </p>
               </div>
 
@@ -330,6 +382,7 @@ export function GroupQrcode() {
                 <Button
                   type='button'
                   variant='outline'
+                  size='sm'
                   disabled={busy || !meta.exists}
                   onClick={() => {
                     void handleDelete()
@@ -338,66 +391,37 @@ export function GroupQrcode() {
                   <Trash2 className='mr-1.5 size-4' />
                   {t('Delete')}
                 </Button>
-                <a
-                  href={imageSrc}
-                  download='group-qrcode.png'
-                  className={cn(
-                    'text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-xs',
-                    !hasImage && 'pointer-events-none opacity-50'
-                  )}
+                <Button
+                  type='button'
+                  variant='ghost'
+                  size='sm'
+                  disabled={!hasImage}
+                  onClick={() => window.open(imageSrc, '_blank')}
                 >
-                  <Download className='size-3.5' />
+                  <Download className='mr-1.5 size-4' />
                   {t('Download')}
-                </a>
-                <span className='text-muted-foreground text-xs'>
-                  {t('PNG / JPG / WebP, up to 2MB.')}
-                </span>
+                </Button>
+                {meta.updated_at > 0 && (
+                  <span className='text-muted-foreground ml-auto text-xs'>
+                    {t('Updated')}:{' '}
+                    {dayjs.unix(meta.updated_at).format('YYYY-MM-DD HH:mm')}
+                  </span>
+                )}
               </div>
-
-              {expired && (
-                <div className='border-destructive/30 bg-destructive/10 text-destructive flex items-start gap-2 rounded-md border px-3 py-2 text-xs'>
-                  <AlertTriangle className='mt-0.5 size-3.5 shrink-0' />
-                  <span>
-                    {t(
-                      'This QR code has expired. Upload a new WeChat group QR code right away, otherwise users cannot join.'
-                    )}
-                  </span>
-                </div>
-              )}
-
-              {!expired && expiringSoon && (
-                <div className='border-warning/30 bg-warning/10 flex items-start gap-2 rounded-md border px-3 py-2 text-xs'>
-                  <AlertTriangle className='mt-0.5 size-3.5 shrink-0' />
-                  <span>
-                    {t(
-                      'This QR code expires in a few days. Remember to upload a fresh one before it stops working.'
-                    )}
-                  </span>
-                </div>
-              )}
-
-              {!expired && !expiringSoon && hasImage && daysLeft !== null && (
-                <div className='border-success/30 bg-success/10 flex items-start gap-2 rounded-md border px-3 py-2 text-xs'>
-                  <CheckCircle2 className='mt-0.5 size-3.5 shrink-0' />
-                  <span>
-                    {t('QR code is valid until')} {meta.expires_at}
-                  </span>
-                </div>
-              )}
             </div>
           </div>
         </div>
       </SectionPageLayout.Content>
 
       <Dialog open={zoom} onOpenChange={setZoom}>
-        <DialogContent className='max-w-[92vw] border-0 bg-transparent p-0 shadow-none sm:max-w-[520px]'>
+        <DialogContent className='max-w-[92vw] border-0 bg-transparent p-0 shadow-none sm:max-w-[560px]'>
           <DialogTitle className='sr-only'>
             {t('WeChat Group QR Code')}
           </DialogTitle>
           <img
             src={imageSrc}
             alt={t('WeChat Group QR Code')}
-            className='mx-auto max-h-[80vh] w-full rounded-lg bg-white object-contain'
+            className='mx-auto max-h-[82vh] w-full rounded-lg bg-white object-contain p-3'
           />
         </DialogContent>
       </Dialog>

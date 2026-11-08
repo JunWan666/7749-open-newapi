@@ -29,6 +29,7 @@ import {
   QrCode,
   Radio,
   ServerCog,
+  ShieldAlert,
   Settings,
   Ticket,
   User,
@@ -139,6 +140,11 @@ export function useSidebarData(): SidebarData {
             title: t('Redemption Codes'),
             url: '/redemption-codes',
             icon: Ticket,
+          },
+          {
+            title: t('Anomaly Users'),
+            url: '/user-anomalies',
+            icon: ShieldAlert,
           },
           {
             title: t('WeChat Group QR Code'),
