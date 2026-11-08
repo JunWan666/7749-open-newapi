@@ -28,7 +28,11 @@ import { Button } from '@/components/ui/button'
 import { formatTimestamp } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
-import { type AnomalyUserRow, getUserAnomalies, updateAnomalyUserStatus } from './api'
+import {
+  type AnomalyUserRow,
+  getUserAnomalies,
+  updateAnomalyUserStatus,
+} from './api'
 
 type AnomalyUser = AnomalyUserRow
 
@@ -101,7 +105,7 @@ export function UserAnomalies() {
   function actionButtons(user: AnomalyUser) {
     if (user.role >= 10) {
       return (
-        <span className='text-muted-foreground text-[11px]'>
+        <span className='text-muted-foreground whitespace-nowrap text-[11px]'>
           {t('Admin account')}
         </span>
       )
@@ -139,6 +143,34 @@ export function UserAnomalies() {
     )
   }
 
+  /** 用户单元格：用户名 + 管理员徽章 */
+  function userCell(user: AnomalyUser) {
+    return (
+      <div className='flex items-center gap-1.5'>
+        <span className='font-medium'>{user.username}</span>
+        {user.role >= 10 && (
+          <StatusBadge label={t('Admin')} variant='info' copyable={false} />
+        )}
+      </div>
+    )
+  }
+
+  /** 备注单元格：绿色，空则显示占位 */
+  function remarkCell(user: AnomalyUser) {
+    if (!user.remark) {
+      return <span className='text-muted-foreground/40'>-</span>
+    }
+    return (
+      <span className='text-success max-w-[120px] truncate font-medium'>
+        {user.remark}
+      </span>
+    )
+  }
+
+  const thClass =
+    'text-muted-foreground px-3 py-2 text-left text-[11px] font-medium whitespace-nowrap'
+  const tdClass = 'px-3 py-2 align-middle'
+
   return (
     <SectionPageLayout>
       <SectionPageLayout.Title>{t('Anomaly Users')}</SectionPageLayout.Title>
@@ -151,13 +183,15 @@ export function UserAnomalies() {
             void refetch()
           }}
         >
-          <RefreshCw className={cn('mr-1.5 size-4', isFetching && 'animate-spin')} />
+          <RefreshCw
+            className={cn('mr-1.5 size-4', isFetching && 'animate-spin')}
+          />
           {t('Refresh')}
         </Button>
       </SectionPageLayout.Actions>
       <SectionPageLayout.Content>
-        <div className='flex max-w-5xl flex-col gap-6'>
-          <p className='text-muted-foreground text-sm'>
+        <div className='flex flex-col gap-6'>
+          <p className='text-muted-foreground max-w-4xl text-sm'>
             {t(
               'Accounts sharing one IP, and accounts that only check in without ever calling a model. Shared IPs can be normal (school / office NAT), so review before acting.'
             )}
@@ -178,16 +212,16 @@ export function UserAnomalies() {
             </div>
 
             {payload.ip_groups.length === 0 ? (
-              <p className='text-muted-foreground rounded-md border border-dashed px-3 py-6 text-center text-xs'>
+              <p className='text-muted-foreground rounded-lg border border-dashed px-3 py-8 text-center text-xs'>
                 {t('Nothing suspicious found')}
               </p>
             ) : (
-              <div className='flex flex-col gap-3'>
+              <div className='flex flex-col gap-4'>
                 {payload.ip_groups.map((group) => (
                   <div
                     key={group.ip}
                     className={cn(
-                      'overflow-hidden rounded-lg border',
+                      'bg-card overflow-hidden rounded-xl border shadow-sm',
                       group.accounts >= 3
                         ? 'border-destructive/40'
                         : 'border-warning/40'
@@ -195,64 +229,87 @@ export function UserAnomalies() {
                   >
                     <div
                       className={cn(
-                        'flex flex-wrap items-center gap-2 px-3 py-2 text-xs',
+                        'flex flex-wrap items-center gap-2 border-b px-3 py-2',
                         group.accounts >= 3
-                          ? 'bg-destructive/10'
-                          : 'bg-warning/10'
+                          ? 'border-destructive/30 bg-destructive/10'
+                          : 'border-warning/30 bg-warning/10'
                       )}
                     >
-                      {group.accounts >= 3 ? (
-                        <AlertTriangle className='text-destructive size-3.5' />
-                      ) : (
-                        <AlertTriangle className='text-warning size-3.5' />
-                      )}
-                      <span className='font-mono font-medium'>{group.ip}</span>
-                      <span className='text-muted-foreground'>
-                        {group.accounts} {t('accounts')}
+                      <AlertTriangle
+                        className={cn(
+                          'size-4',
+                          group.accounts >= 3
+                            ? 'text-destructive'
+                            : 'text-warning'
+                        )}
+                      />
+                      <span className='font-mono text-sm font-semibold'>
+                        {group.ip}
                       </span>
+                      <StatusBadge
+                        label={`${group.accounts} ${t('accounts')}`}
+                        variant={group.accounts >= 3 ? 'danger' : 'warning'}
+                        copyable={false}
+                      />
                     </div>
-                    <div className='divide-y'>
-                      {group.users.map((user) => (
-                        <div
-                          key={user.id}
-                          className='flex flex-wrap items-center gap-3 px-3 py-2 text-xs'
-                        >
-                          <span className='font-mono text-muted-foreground w-12'>
-                            #{user.id}
-                          </span>
-                          <span className='min-w-[100px] font-medium'>
-                            {user.username}
-                          </span>
-                          {user.role >= 10 && (
-                            <StatusBadge
-                              label={t('Admin')}
-                              variant='info'
-                              copyable={false}
-                            />
-                          )}
-                          {user.remark && (
-                            <span className='text-success font-medium'>
-                              {user.remark}
-                            </span>
-                          )}
-                          <span className='text-muted-foreground font-mono'>
-                            {user.register_ip || user.last_login_ip || '-'}
-                          </span>
-                          <span className='text-muted-foreground'>
-                            {t('Registered')}:{' '}
-                            {formatTimestamp(user.created_at)}
-                          </span>
-                          <span className='text-muted-foreground'>
-                            {t('Calls')}: {user.request_count}
-                          </span>
-                          <span className='text-muted-foreground'>
-                            {t('Tokens used')}: {formatTokens(user.total_tokens)}
-                          </span>
-                          <span className='ml-auto'>
-                            {actionButtons(user)}
-                          </span>
-                        </div>
-                      ))}
+
+                    <div className='overflow-x-auto'>
+                      <table className='w-full min-w-[880px] text-xs'>
+                        <thead>
+                          <tr className='bg-muted/40 border-b'>
+                            <th className={cn(thClass, 'w-16')}>{t('ID')}</th>
+                            <th className={thClass}>{t('Username')}</th>
+                            <th className={thClass}>{t('Remark')}</th>
+                            <th className={thClass}>{t('IP')}</th>
+                            <th className={thClass}>{t('Created At')}</th>
+                            <th className={cn(thClass, 'text-right')}>
+                              {t('Calls')}
+                            </th>
+                            <th className={cn(thClass, 'text-right')}>
+                              {t('Tokens used')}
+                            </th>
+                            <th className={cn(thClass, 'text-right')}>
+                              {t('Actions')}
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className='divide-y'>
+                          {group.users.map((user) => (
+                            <tr key={user.id} className='hover:bg-muted/30'>
+                              <td className={cn(tdClass, 'font-mono')}>
+                                #{user.id}
+                              </td>
+                              <td className={tdClass}>{userCell(user)}</td>
+                              <td className={tdClass}>{remarkCell(user)}</td>
+                              <td
+                                className={cn(
+                                  tdClass,
+                                  'text-muted-foreground font-mono whitespace-nowrap'
+                                )}
+                              >
+                                {user.register_ip || user.last_login_ip || '-'}
+                              </td>
+                              <td
+                                className={cn(
+                                  tdClass,
+                                  'text-muted-foreground whitespace-nowrap'
+                                )}
+                              >
+                                {formatTimestamp(user.created_at)}
+                              </td>
+                              <td className={cn(tdClass, 'text-right')}>
+                                {user.request_count.toLocaleString()}
+                              </td>
+                              <td className={cn(tdClass, 'text-right')}>
+                                {formatTokens(user.total_tokens)}
+                              </td>
+                              <td className={cn(tdClass, 'text-right')}>
+                                {actionButtons(user)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
                 ))}
@@ -275,46 +332,69 @@ export function UserAnomalies() {
             </div>
 
             {payload.idle_users.length === 0 ? (
-              <p className='text-muted-foreground rounded-md border border-dashed px-3 py-6 text-center text-xs'>
+              <p className='text-muted-foreground rounded-lg border border-dashed px-3 py-8 text-center text-xs'>
                 {t('Nothing suspicious found')}
               </p>
             ) : (
-              <div className='divide-y rounded-lg border'>
-                {payload.idle_users.map((user) => (
-                  <div
-                    key={user.id}
-                    className='flex flex-wrap items-center gap-3 px-3 py-2 text-xs'
-                  >
-                    <span className='font-mono text-muted-foreground w-12'>
-                      #{user.id}
-                    </span>
-                    <span className='min-w-[100px] font-medium'>
-                      {user.username}
-                    </span>
-                    {user.role >= 10 && (
-                      <StatusBadge
-                        label={t('Admin')}
-                        variant='info'
-                        copyable={false}
-                      />
-                    )}
-                    {user.remark && (
-                      <span className='text-success font-medium'>
-                        {user.remark}
-                      </span>
-                    )}
-                    <span className='text-muted-foreground'>
-                      {t('Check-ins')}: {user.checkin_days}
-                    </span>
-                    <span className='text-muted-foreground'>
-                      {t('Tokens used')}: {formatTokens(user.total_tokens)}
-                    </span>
-                    <span className='text-muted-foreground'>
-                      {t('Registered')}: {formatTimestamp(user.created_at)}
-                    </span>
-                    <span className='ml-auto'>{actionButtons(user)}</span>
-                  </div>
-                ))}
+              <div className='bg-card overflow-hidden rounded-xl border shadow-sm'>
+                <div className='overflow-x-auto'>
+                  <table className='w-full min-w-[820px] text-xs'>
+                    <thead>
+                      <tr className='bg-muted/40 border-b'>
+                        <th className={cn(thClass, 'w-16')}>{t('ID')}</th>
+                        <th className={thClass}>{t('Username')}</th>
+                        <th className={thClass}>{t('Remark')}</th>
+                        <th className={thClass}>{t('IP')}</th>
+                        <th className={thClass}>{t('Created At')}</th>
+                        <th className={cn(thClass, 'text-right')}>
+                          {t('Check-ins')}
+                        </th>
+                        <th className={cn(thClass, 'text-right')}>
+                          {t('Tokens used')}
+                        </th>
+                        <th className={cn(thClass, 'text-right')}>
+                          {t('Actions')}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className='divide-y'>
+                      {payload.idle_users.map((user) => (
+                        <tr key={user.id} className='hover:bg-muted/30'>
+                          <td className={cn(tdClass, 'font-mono')}>
+                            #{user.id}
+                          </td>
+                          <td className={tdClass}>{userCell(user)}</td>
+                          <td className={tdClass}>{remarkCell(user)}</td>
+                          <td
+                            className={cn(
+                              tdClass,
+                              'text-muted-foreground font-mono whitespace-nowrap'
+                            )}
+                          >
+                            {user.register_ip || user.last_login_ip || '-'}
+                          </td>
+                          <td
+                            className={cn(
+                              tdClass,
+                              'text-muted-foreground whitespace-nowrap'
+                            )}
+                          >
+                            {formatTimestamp(user.created_at)}
+                          </td>
+                          <td className={cn(tdClass, 'text-right')}>
+                            {user.checkin_days}
+                          </td>
+                          <td className={cn(tdClass, 'text-right')}>
+                            {formatTokens(user.total_tokens)}
+                          </td>
+                          <td className={cn(tdClass, 'text-right')}>
+                            {actionButtons(user)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </section>
