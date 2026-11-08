@@ -17,16 +17,25 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useQuery } from '@tanstack/react-query'
-import { AlertTriangle, CheckCircle2, Trash2, Upload } from 'lucide-react'
-import { useRef, useState } from 'react'
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Download,
+  ImagePlus,
+  Trash2,
+  ZoomIn,
+} from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { SectionPageLayout } from '@/components/layout'
 import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import dayjs from '@/lib/dayjs'
+import { cn } from '@/lib/utils'
 
 import {
   deleteGroupQrcode,
@@ -42,7 +51,7 @@ type GroupQrcodeMeta = {
 
 /**
  * Admin page for the WeChat group QR code shown to pending-review users.
- * The image lives on the server data volume, so replacing it never needs a rebuild.
+ * Supports click / drag-and-drop / Ctrl+V upload and click-to-enlarge preview.
  */
 export function GroupQrcode() {
   const { t } = useTranslation()
@@ -60,6 +69,8 @@ export function GroupQrcode() {
   const [version, setVersion] = useState(() => Date.now())
   const [busy, setBusy] = useState(false)
   const [previewError, setPreviewError] = useState(false)
+  const [dragOver, setDragOver] = useState(false)
+  const [zoom, setZoom] = useState(false)
 
   const expiresDate = meta.expires_at ? dayjs(meta.expires_at) : null
   const daysLeft = expiresDate
@@ -68,33 +79,49 @@ export function GroupQrcode() {
   const expired = daysLeft !== null && daysLeft < 0
   const expiringSoon = daysLeft !== null && daysLeft >= 0 && daysLeft <= 3
 
-  async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0]
-    event.target.value = ''
-    if (!file) {
-      return
-    }
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error(t('Image must be under 2MB'))
-      return
-    }
-    setBusy(true)
-    try {
-      const res = await uploadGroupQrcode(file, expiresAt)
-      if (res?.success) {
-        toast.success(t('Uploaded'))
-        setVersion(Date.now())
-        setPreviewError(false)
-        await refetch()
-      } else {
-        toast.error(res?.message || t('Upload failed'))
+  const handleFile = useCallback(
+    async (file: File) => {
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error(t('Image must be under 2MB'))
+        return
       }
-    } catch {
-      toast.error(t('Upload failed'))
-    } finally {
-      setBusy(false)
+      setBusy(true)
+      try {
+        const res = await uploadGroupQrcode(file, expiresAt)
+        if (res?.success) {
+          toast.success(t('Uploaded'))
+          setVersion(Date.now())
+          setPreviewError(false)
+          await refetch()
+        } else {
+          toast.error(res?.message || t('Upload failed'))
+        }
+      } catch {
+        toast.error(t('Upload failed'))
+      } finally {
+        setBusy(false)
+      }
+    },
+    [expiresAt, refetch, t]
+  )
+
+  // Allow pasting a screenshot directly from the clipboard (Ctrl+V).
+  useEffect(() => {
+    function handlePaste(event: ClipboardEvent) {
+      const items = [...(event.clipboardData?.items ?? [])]
+      const imageItem = items.find((item) => item.type.startsWith('image/'))
+      if (!imageItem) {
+        return
+      }
+      const file = imageItem.getAsFile()
+      if (file) {
+        event.preventDefault()
+        void handleFile(file)
+      }
     }
-  }
+    window.addEventListener('paste', handlePaste)
+    return () => window.removeEventListener('paste', handlePaste)
+  }, [handleFile])
 
   async function handleDelete() {
     setBusy(true)
@@ -118,7 +145,11 @@ export function GroupQrcode() {
   function renderStatus() {
     if (!meta.exists) {
       return (
-        <StatusBadge label={t('Not uploaded')} variant='neutral' copyable={false} />
+        <StatusBadge
+          label={t('Not uploaded')}
+          variant='neutral'
+          copyable={false}
+        />
       )
     }
     if (!expiresDate) {
@@ -153,6 +184,9 @@ export function GroupQrcode() {
     )
   }
 
+  const imageSrc = `/api/group-qrcode?t=${version}`
+  const hasImage = meta.exists && !previewError
+
   return (
     <SectionPageLayout>
       <SectionPageLayout.Title>
@@ -168,24 +202,48 @@ export function GroupQrcode() {
 
           <div className='flex flex-wrap items-start gap-6'>
             <div className='flex flex-col items-center gap-2'>
-              <div className='bg-muted flex h-44 w-44 items-center justify-center overflow-hidden rounded-lg border'>
-                {meta.exists && !previewError ? (
-                  <img
-                    src={`/api/group-qrcode?t=${version}`}
-                    alt={t('WeChat Group QR Code')}
-                    className='h-full w-full object-contain'
-                    onError={() => setPreviewError(true)}
-                  />
+              <button
+                type='button'
+                className={cn(
+                  'bg-muted relative flex h-44 w-44 items-center justify-center overflow-hidden rounded-lg border transition-shadow',
+                  hasImage
+                    ? 'group hover:ring-primary/40 cursor-zoom-in hover:ring-2'
+                    : 'cursor-default'
+                )}
+                onClick={() => {
+                  if (hasImage) {
+                    setZoom(true)
+                  }
+                }}
+                aria-label={t('Click to enlarge')}
+              >
+                {hasImage ? (
+                  <>
+                    <img
+                      src={imageSrc}
+                      alt={t('WeChat Group QR Code')}
+                      className='h-full w-full object-contain'
+                      onError={() => setPreviewError(true)}
+                    />
+                    <span className='pointer-events-none absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100'>
+                      <ZoomIn className='size-6 text-white' />
+                    </span>
+                  </>
                 ) : (
                   <span className='text-muted-foreground px-3 text-center text-xs'>
                     {t('No QR code uploaded yet')}
                   </span>
                 )}
-              </div>
+              </button>
               {renderStatus()}
+              {hasImage && (
+                <span className='text-muted-foreground text-[11px]'>
+                  {t('Click the image to enlarge')}
+                </span>
+              )}
             </div>
 
-            <div className='flex min-w-[260px] flex-1 flex-col gap-3'>
+            <div className='flex min-w-[280px] flex-1 flex-col gap-3'>
               <div className='flex flex-col gap-1.5'>
                 <label
                   className='text-sm font-medium'
@@ -201,7 +259,9 @@ export function GroupQrcode() {
                   className='w-48'
                 />
                 <p className='text-muted-foreground text-xs'>
-                  {t('Paste the date printed on the WeChat QR code, e.g. "valid until Nov 16".')}
+                  {t(
+                    'Paste the date printed on the WeChat QR code, e.g. "valid until Nov 16".'
+                  )}
                 </p>
               </div>
 
@@ -211,19 +271,62 @@ export function GroupQrcode() {
                 accept='image/png,image/jpeg,image/webp'
                 className='hidden'
                 onChange={(event) => {
-                  void handleFileChange(event)
+                  const file = event.target.files?.[0]
+                  event.target.value = ''
+                  if (file) {
+                    void handleFile(file)
+                  }
                 }}
               />
 
-              <div className='flex flex-wrap gap-2'>
-                <Button
-                  type='button'
-                  disabled={busy}
-                  onClick={() => inputRef.current?.click()}
-                >
-                  <Upload className='mr-1.5 size-4' />
-                  {t('Upload')}
-                </Button>
+              <div
+                role='button'
+                tabIndex={0}
+                aria-label={t('Upload area')}
+                onClick={() => inputRef.current?.click()}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault()
+                    inputRef.current?.click()
+                  }
+                }}
+                onDragOver={(event) => {
+                  event.preventDefault()
+                  setDragOver(true)
+                }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={(event) => {
+                  event.preventDefault()
+                  setDragOver(false)
+                  const file = event.dataTransfer.files?.[0]
+                  if (file) {
+                    void handleFile(file)
+                  }
+                }}
+                className={cn(
+                  'flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed px-4 py-7 text-center transition-colors',
+                  dragOver
+                    ? 'border-primary bg-primary/5'
+                    : 'border-muted-foreground/25 hover:border-primary/60 hover:bg-muted/40'
+                )}
+              >
+                <ImagePlus
+                  className={cn(
+                    'size-7',
+                    dragOver ? 'text-primary' : 'text-muted-foreground'
+                  )}
+                />
+                <p className='text-sm font-medium'>
+                  {busy
+                    ? t('Uploading...')
+                    : t('Drop an image here, or click to choose')}
+                </p>
+                <p className='text-muted-foreground text-xs'>
+                  {t('You can also paste with Ctrl+V')}
+                </p>
+              </div>
+
+              <div className='flex flex-wrap items-center gap-2'>
                 <Button
                   type='button'
                   variant='outline'
@@ -235,11 +338,21 @@ export function GroupQrcode() {
                   <Trash2 className='mr-1.5 size-4' />
                   {t('Delete')}
                 </Button>
+                <a
+                  href={imageSrc}
+                  download='group-qrcode.png'
+                  className={cn(
+                    'text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-xs',
+                    !hasImage && 'pointer-events-none opacity-50'
+                  )}
+                >
+                  <Download className='size-3.5' />
+                  {t('Download')}
+                </a>
+                <span className='text-muted-foreground text-xs'>
+                  {t('PNG / JPG / WebP, up to 2MB.')}
+                </span>
               </div>
-
-              <p className='text-muted-foreground text-xs'>
-                {t('PNG / JPG / WebP, up to 2MB.')}
-              </p>
 
               {expired && (
                 <div className='border-destructive/30 bg-destructive/10 text-destructive flex items-start gap-2 rounded-md border px-3 py-2 text-xs'>
@@ -263,7 +376,7 @@ export function GroupQrcode() {
                 </div>
               )}
 
-              {!expired && !expiringSoon && meta.exists && daysLeft !== null && (
+              {!expired && !expiringSoon && hasImage && daysLeft !== null && (
                 <div className='border-success/30 bg-success/10 flex items-start gap-2 rounded-md border px-3 py-2 text-xs'>
                   <CheckCircle2 className='mt-0.5 size-3.5 shrink-0' />
                   <span>
@@ -275,6 +388,19 @@ export function GroupQrcode() {
           </div>
         </div>
       </SectionPageLayout.Content>
+
+      <Dialog open={zoom} onOpenChange={setZoom}>
+        <DialogContent className='max-w-[92vw] border-0 bg-transparent p-0 shadow-none sm:max-w-[520px]'>
+          <DialogTitle className='sr-only'>
+            {t('WeChat Group QR Code')}
+          </DialogTitle>
+          <img
+            src={imageSrc}
+            alt={t('WeChat Group QR Code')}
+            className='mx-auto max-h-[80vh] w-full rounded-lg bg-white object-contain'
+          />
+        </DialogContent>
+      </Dialog>
     </SectionPageLayout>
   )
 }

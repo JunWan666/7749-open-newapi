@@ -136,12 +136,20 @@ export function AccountStatusBanner() {
           <div className='flex flex-col gap-3 text-sm'>
             {qrOk && (
               <div className='flex flex-col items-center gap-1.5'>
-                <img
-                  src='/api/group-qrcode'
-                  alt={t('WeChat Group QR Code')}
-                  className='h-52 w-52 rounded-lg border object-contain'
-                  onError={() => setQrOk(false)}
-                />
+                <a
+                  href='/api/group-qrcode'
+                  target='_blank'
+                  rel='noreferrer'
+                  title={t('Click to enlarge')}
+                  className='cursor-zoom-in'
+                >
+                  <img
+                    src='/api/group-qrcode'
+                    alt={t('WeChat Group QR Code')}
+                    className='h-52 w-52 rounded-lg border object-contain'
+                    onError={() => setQrOk(false)}
+                  />
+                </a>
                 <span className='text-muted-foreground text-xs'>
                   {t('Scan the QR code to join our WeChat group')}
                 </span>
