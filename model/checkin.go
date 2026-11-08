@@ -10,6 +10,15 @@ import (
 	"gorm.io/gorm"
 )
 
+const (
+	// A check-in requires real usage: the account must have consumed at least this many
+	// tokens (prompt + completion) within the recent window. Fresh accounts get a grace
+	// period so they can check in right after signing up.
+	checkinRecentUsageDays  = 7
+	checkinRecentTokens     = 500000
+	checkinNewUserGraceDays = 3
+)
+
 // Checkin 签到记录
 type Checkin struct {
 	Id           int    `json:"id" gorm:"primaryKey;autoIncrement"`
@@ -56,6 +65,16 @@ func UserCheckin(userId int) (*Checkin, error) {
 	setting := operation_setting.GetCheckinSetting()
 	if !setting.Enabled {
 		return nil, errors.New("签到功能未启用")
+	}
+
+	// Anti-farming guard: only accounts with real usage may check in, so accounts that
+	// merely pile up quota cannot collect rewards.
+	allowed, err := CheckinAllowedByRecentUsage(userId)
+	if err != nil {
+		return nil, err
+	}
+	if !allowed {
+		return nil, errors.New("近 7 天累计消耗不足 50 万 token，无法签到（正常使用后即可签到）")
 	}
 
 	// 检查今天是否已签到
@@ -176,4 +195,28 @@ func GetUserCheckinStats(userId int, month string) (map[string]interface{}, erro
 		"checked_in_today": hasCheckedToday, // 今天是否已签到
 		"records":          checkinRecords,  // 本月签到记录详情（不含id和user_id）
 	}, nil
+}
+
+// CheckinAllowedByRecentUsage reports whether the user has consumed enough tokens recently.
+// Accounts younger than the grace period are allowed so new users can check in immediately.
+func CheckinAllowedByRecentUsage(userId int) (bool, error) {
+	user, err := GetUserById(userId, false)
+	if err != nil {
+		return false, err
+	}
+	now := time.Now().Unix()
+	if now-user.CreatedAt < int64(checkinNewUserGraceDays)*86400 {
+		return true, nil
+	}
+
+	since := now - int64(checkinRecentUsageDays)*86400
+	var tokens int64
+	err = DB.Model(&Log{}).
+		Where("user_id = ? AND type = ? AND created_at >= ?", userId, LogTypeConsume, since).
+		Select("COALESCE(SUM(prompt_tokens + completion_tokens), 0)").
+		Scan(&tokens).Error
+	if err != nil {
+		return false, err
+	}
+	return tokens >= checkinRecentTokens, nil
 }
