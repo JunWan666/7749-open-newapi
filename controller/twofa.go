@@ -451,7 +451,7 @@ func Verify2FALogin(c *gin.Context) {
 		})
 		return
 	}
-	if user.Status != common.UserStatusEnabled {
+	if !common.UserStatusAllowsSignIn(user.Status) {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
 			"message": "用户已被禁用",

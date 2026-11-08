@@ -125,7 +125,7 @@ func TelegramBind(c *gin.Context) {
 		case userErr != nil:
 			common.SysError("TelegramBind user status lookup failed: " + userErr.Error())
 			telegramBindFailure(c, telegramBindErrorInternal)
-		case user.Status != common.UserStatusEnabled:
+		case !common.UserStatusAllowsSignIn(user.Status):
 			telegramBindFailure(c, telegramBindErrorUserDisabled)
 		default:
 			telegramBindFailure(c, telegramBindErrorSessionInvalid)
@@ -157,7 +157,7 @@ func TelegramBind(c *gin.Context) {
 			}
 			return err
 		}
-		if user.Status != common.UserStatusEnabled {
+		if !common.UserStatusAllowsSignIn(user.Status) {
 			return errTelegramBindUserDisabled
 		}
 
