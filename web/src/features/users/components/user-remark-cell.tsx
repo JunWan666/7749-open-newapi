@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
@@ -37,12 +37,6 @@ export function UserRemarkCell(props: UserRemarkCellProps) {
   const [saving, setSaving] = useState(false)
   const savingRef = useRef(false)
   const skipSaveRef = useRef(false)
-
-  useEffect(() => {
-    if (!editing) {
-      setValue(props.remark ?? '')
-    }
-  }, [props.remark, editing])
 
   async function save() {
     if (savingRef.current) {
@@ -109,7 +103,10 @@ export function UserRemarkCell(props: UserRemarkCellProps) {
       type='button'
       title={props.remark || t('Remark')}
       className='hover:bg-muted w-[150px] cursor-pointer truncate rounded px-1.5 py-1 text-left text-xs transition-colors'
-      onClick={() => setEditing(true)}
+      onClick={() => {
+        setValue(props.remark ?? '')
+        setEditing(true)
+      }}
     >
       {props.remark ? (
         <span>{props.remark}</span>
