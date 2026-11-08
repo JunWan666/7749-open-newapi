@@ -15,6 +15,15 @@
 </p>
 
 <p align="center">
+  <img src="https://img.shields.io/badge/定制版-7749公益-c27a4d?style=flat-square" alt="7749 定制版" />
+  <img src="https://img.shields.io/badge/镜像-ghcr.io-2496ED?style=flat-square&logo=docker&logoColor=white" alt="ghcr.io 镜像" />
+  <img src="https://img.shields.io/badge/基于-v1.0.0--rc.25-6B7280?style=flat-square" alt="基线上游版本" />
+</p>
+
+> **这是 7749 公益站的定制版本**，基于上游 `v1.0.0-rc.25` 二次开发。
+> 下面的功能介绍、截图与文档均来自上游项目，本仓库的改动统一登记在 [7749-MODIFICATIONS.md](./7749-MODIFICATIONS.md)。
+
+<p align="center">
   <a href="https://raw.githubusercontent.com/Calcium-Ion/new-api/main/LICENSE">
     <img src="https://img.shields.io/github/license/Calcium-Ion/new-api?color=brightgreen" alt="license">
   </a><!--
@@ -44,6 +53,7 @@
 </p>
 
 <p align="center">
+  <a href="#-7749-定制版说明">7749 定制说明</a> •
   <a href="#-快速开始">快速开始</a> •
   <a href="#-主要特性">主要特性</a> •
   <a href="#-部署">部署</a> •
@@ -52,6 +62,30 @@
 </p>
 
 </div>
+
+## 🔧 7749 定制版说明
+
+本仓库是 [New API](https://github.com/QuantumNous/new-api) 的衍生版本，用于 7749 公益站的实际运行。**这里只写与官方版的差异**，官方功能与用法直接看下文。
+
+| 项目 | 官方版 | 本仓库（7749 版） |
+| --- | --- | --- |
+| 镜像构建 | 上游 CI，多架构 | GitHub Actions 源码构建，`linux/amd64`，一次约 6 分钟 |
+| 镜像地址 | `calciumion/new-api`（Docker Hub） | `ghcr.io/junwan666/7749-open-newapi`（GHCR，公开可直接拉） |
+| 版本号 | `v1.0.0-rc.X` | `v1.0.0-rc.25-7749.N`（上游版本 + 定制序号） |
+| 功能改动 | — | 暂无，行为与 `rc.25` 一致 |
+
+拉取镜像：
+
+```bash
+docker pull ghcr.io/junwan666/7749-open-newapi:latest
+```
+
+更换镜像后重启容器即可，数据在 PostgreSQL 卷中，不受影响；同一上游版本之间可随时回退。
+
+> 之后新增的功能会同步登记到上表和 [7749-MODIFICATIONS.md](./7749-MODIFICATIONS.md)。
+> 本项目通过公网提供服务，按 AGPL-3.0 要求，该镜像对应的完整源码即本仓库，任何人可获取。
+
+---
 
 ## 📝 项目说明
 

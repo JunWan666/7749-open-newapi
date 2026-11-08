@@ -15,6 +15,15 @@
 </p>
 
 <p align="center">
+  <img src="https://img.shields.io/badge/fork-7749%20custom-c27a4d?style=flat-square" alt="7749 custom fork" />
+  <img src="https://img.shields.io/badge/image-ghcr.io-2496ED?style=flat-square&logo=docker&logoColor=white" alt="ghcr.io image" />
+  <img src="https://img.shields.io/badge/based%20on-v1.0.0--rc.25-6B7280?style=flat-square" alt="based on upstream rc.25" />
+</p>
+
+> **This is a customized fork for the 7749 project**, based on upstream `v1.0.0-rc.25`.
+> Everything below is upstream documentation; our changes are tracked in [7749-MODIFICATIONS.md](./7749-MODIFICATIONS.md) — 中文说明见 [README.zh_CN.md](./README.zh_CN.md).
+
+<p align="center">
   <a href="https://raw.githubusercontent.com/Calcium-Ion/new-api/main/LICENSE">
     <img src="https://img.shields.io/github/license/Calcium-Ion/new-api?color=brightgreen" alt="license">
   </a><!--
