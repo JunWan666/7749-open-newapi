@@ -108,6 +108,8 @@ type User struct {
 	StripeCustomer   string                     `json:"stripe_customer" gorm:"type:varchar(64);column:stripe_customer;index"`
 	CreatedAt        int64                      `json:"created_at" gorm:"autoCreateTime;column:created_at"`
 	LastLoginAt      int64                      `json:"last_login_at" gorm:"default:0;column:last_login_at"`
+	RegisterIp       string                     `json:"register_ip" gorm:"type:varchar(64);default:'';column:register_ip;index"`
+	LastLoginIp      string                     `json:"last_login_ip" gorm:"type:varchar(64);default:'';column:last_login_ip;index"`
 	AuthVersion      int64                      `json:"-" gorm:"type:bigint;not null;default:1;column:auth_version"`
 	AdminPermissions map[string]map[string]bool `json:"admin_permissions,omitempty" gorm:"-:all"`
 }
@@ -1341,6 +1343,21 @@ func GetRootUser() (user *User) {
 func UpdateUserLastLoginAt(id int) {
 	if err := DB.Model(&User{}).Where("id = ?", id).Update("last_login_at", common.GetTimestamp()).Error; err != nil {
 		common.SysLog("failed to update user last_login_at: " + err.Error())
+	}
+}
+
+// UpdateUserLastLoginInfo refreshes last_login_at and, when available, last_login_ip.
+// Used by login and check-in so admins can spot shared-IP accounts.
+func UpdateUserLastLoginInfo(id int, ip string) {
+	info := struct {
+		LastLoginAt int64  `gorm:"column:last_login_at"`
+		LastLoginIp string `gorm:"column:last_login_ip"`
+	}{
+		LastLoginAt: common.GetTimestamp(),
+		LastLoginIp: ip,
+	}
+	if err := DB.Model(&User{}).Where("id = ?", id).Updates(info).Error; err != nil {
+		common.SysLog("failed to update user last login info: " + err.Error())
 	}
 }
 

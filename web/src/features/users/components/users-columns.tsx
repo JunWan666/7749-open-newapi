@@ -336,6 +336,30 @@ export function useUsersColumns(): ColumnDef<User>[] {
       meta: { mobileHidden: true },
     },
     {
+      accessorKey: 'last_login_ip',
+      header: t('Last Login IP'),
+      cell: ({ row }) => {
+        const ip = row.original.last_login_ip
+        const registerIp = row.original.register_ip
+        if (!ip && !registerIp) {
+          return <span className='text-muted-foreground/50 text-xs'>-</span>
+        }
+        return (
+          <div className='flex flex-col gap-0.5'>
+            <span className='font-mono text-xs'>{ip || '-'}</span>
+            {registerIp && registerIp !== ip && (
+              <span className='text-muted-foreground/60 font-mono text-[10px]'>
+                {t('Register IP')}: {registerIp}
+              </span>
+            )}
+          </div>
+        )
+      },
+      enableSorting: false,
+      size: 150,
+      meta: { mobileHidden: true },
+    },
+    {
       id: 'actions',
       header: () => t('Actions'),
       cell: ({ row }) => <DataTableRowActions row={row} />,
