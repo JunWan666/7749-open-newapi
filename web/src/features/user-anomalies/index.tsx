@@ -50,6 +50,19 @@ type AnomalyData = {
 const STATUS_SUSPICIOUS = 4
 const STATUS_ENABLED = 1
 
+function formatTokens(value: number): string {
+  if (!value) {
+    return '0'
+  }
+  if (value >= 100000000) {
+    return `${(value / 100000000).toFixed(1)} 亿`
+  }
+  if (value >= 10000) {
+    return `${(value / 10000).toFixed(1)} 万`
+  }
+  return String(value)
+}
+
 export function UserAnomalies() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
@@ -232,6 +245,9 @@ export function UserAnomalies() {
                           <span className='text-muted-foreground'>
                             {t('Calls')}: {user.request_count}
                           </span>
+                          <span className='text-muted-foreground'>
+                            {t('Tokens used')}: {formatTokens(user.total_tokens)}
+                          </span>
                           <span className='ml-auto'>
                             {actionButtons(user)}
                           </span>
@@ -289,6 +305,9 @@ export function UserAnomalies() {
                     )}
                     <span className='text-muted-foreground'>
                       {t('Check-ins')}: {user.checkin_days}
+                    </span>
+                    <span className='text-muted-foreground'>
+                      {t('Tokens used')}: {formatTokens(user.total_tokens)}
                     </span>
                     <span className='text-muted-foreground'>
                       {t('Registered')}: {formatTimestamp(user.created_at)}

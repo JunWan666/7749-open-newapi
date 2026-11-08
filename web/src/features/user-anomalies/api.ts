@@ -28,6 +28,7 @@ export type AnomalyUserRow = {
   last_login_ip: string
   created_at: number
   request_count: number
+  total_tokens: number
 }
 
 export async function getUserAnomalies(): Promise<{

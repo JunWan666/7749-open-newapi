@@ -19,6 +19,7 @@ type AnomalyUser struct {
 	LastLoginIp  string `json:"last_login_ip"`
 	CreatedAt    int64  `json:"created_at"`
 	RequestCount int    `json:"request_count"`
+	TotalTokens  int64  `json:"total_tokens"`
 }
 
 // AnomalyIPGroup groups accounts that share the same registration / login IP.
@@ -58,14 +59,17 @@ func GetUserAnomalies(c *gin.Context) {
 
 	for _, row := range counts {
 		var users []AnomalyUser
-		userQuery := `SELECT id, username, status, role, COALESCE(remark,'') AS remark,
-			COALESCE(register_ip,'') AS register_ip,
-			COALESCE(last_login_ip,'') AS last_login_ip, created_at, request_count
-			FROM users
-			WHERE deleted_at IS NULL AND (
-				register_ip = ? OR (last_login_ip = ? AND (register_ip IS NULL OR register_ip = ''))
+		userQuery := `SELECT u.id, u.username, u.status, u.role, COALESCE(u.remark,'') AS remark,
+			COALESCE(u.register_ip,'') AS register_ip,
+			COALESCE(u.last_login_ip,'') AS last_login_ip, u.created_at, u.request_count,
+			COALESCE(SUM(l.prompt_tokens + l.completion_tokens), 0) AS total_tokens
+			FROM users u
+			LEFT JOIN logs l ON l.user_id = u.id AND l.type = 2
+			WHERE u.deleted_at IS NULL AND (
+				u.register_ip = ? OR (u.last_login_ip = ? AND (u.register_ip IS NULL OR u.register_ip = ''))
 			)
-			ORDER BY id`
+			GROUP BY u.id, u.username, u.status, u.role, u.remark, u.register_ip, u.last_login_ip, u.created_at, u.request_count
+			ORDER BY u.id`
 		if err := model.DB.Raw(userQuery, row.Ip, row.Ip).Scan(&users).Error; err != nil {
 			common.ApiError(c, err)
 			return
@@ -81,7 +85,8 @@ func GetUserAnomalies(c *gin.Context) {
 	idleQuery := `SELECT u.id, u.username, u.status, u.role, COALESCE(u.remark,'') AS remark,
 		COALESCE(u.register_ip,'') AS register_ip,
 		COALESCE(u.last_login_ip,'') AS last_login_ip, u.created_at, u.request_count,
-		count(c.id) AS checkin_days
+		count(c.id) AS checkin_days,
+		COALESCE((SELECT SUM(l.prompt_tokens + l.completion_tokens) FROM logs l WHERE l.user_id = u.id AND l.type = 2), 0) AS total_tokens
 		FROM users u JOIN checkins c ON c.user_id = u.id
 		WHERE u.deleted_at IS NULL AND u.request_count = 0
 		GROUP BY u.id, u.username, u.status, u.role, u.remark, u.register_ip, u.last_login_ip, u.created_at, u.request_count
