@@ -197,6 +197,7 @@ func SetApiRouter(router *gin.Engine) {
 			optionRoute.GET("/", controller.GetOptions)
 			optionRoute.PUT("/", controller.UpdateOption)
 			optionRoute.POST("/payment_compliance", controller.ConfirmPaymentCompliance)
+			optionRoute.GET("/group-qrcode/meta", controller.GetGroupQrcodeMeta)
 			optionRoute.POST("/group-qrcode", controller.UploadGroupQrcode)
 			optionRoute.DELETE("/group-qrcode", controller.DeleteGroupQrcode)
 			optionRoute.GET("/channel_affinity_cache", controller.GetChannelAffinityCacheStats)

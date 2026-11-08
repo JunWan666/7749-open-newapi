@@ -1,11 +1,13 @@
 package controller
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/gin-gonic/gin"
@@ -15,6 +17,53 @@ import (
 // (/app/data in docker, ./data in local dev), so replacing it never needs a rebuild.
 var groupQrcodeDirs = []string{"/app/data/uploads", "./data/uploads"}
 var groupQrcodeExts = []string{".png", ".jpg", ".jpeg", ".webp"}
+
+// groupQrcodeMeta is stored next to the image so the admin page can warn about expiry.
+type groupQrcodeMeta struct {
+	ExpiresAt string `json:"expires_at"` // YYYY-MM-DD, empty when unknown
+	UpdatedAt int64  `json:"updated_at"`
+}
+
+func groupQrcodeMetaPath() string {
+	for _, dir := range groupQrcodeDirs {
+		if info, err := os.Stat(dir); err == nil && info.IsDir() {
+			return filepath.Join(dir, "group_qrcode.json")
+		}
+	}
+	return ""
+}
+
+func readGroupQrcodeMeta() groupQrcodeMeta {
+	var meta groupQrcodeMeta
+	if p := groupQrcodeMetaPath(); p != "" {
+		if b, err := os.ReadFile(p); err == nil {
+			_ = json.Unmarshal(b, &meta)
+		}
+	}
+	return meta
+}
+
+func writeGroupQrcodeMeta(meta groupQrcodeMeta) {
+	if p := groupQrcodeMetaPath(); p != "" {
+		if b, err := json.Marshal(meta); err == nil {
+			_ = os.WriteFile(p, b, 0o644)
+		}
+	}
+}
+
+// GetGroupQrcodeMeta returns whether a QR code exists plus its expiry date.
+func GetGroupQrcodeMeta(c *gin.Context) {
+	_, exists := findGroupQrcode()
+	meta := readGroupQrcodeMeta()
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": gin.H{
+			"exists":     exists,
+			"expires_at": meta.ExpiresAt,
+			"updated_at": meta.UpdatedAt,
+		},
+	})
+}
 
 func findGroupQrcode() (string, bool) {
 	for _, dir := range groupQrcodeDirs {
@@ -104,6 +153,13 @@ func UploadGroupQrcode(c *gin.Context) {
 		return
 	}
 
+	// The WeChat QR code image itself prints an expiry date; the admin can record it here
+	// so the console page can warn before it expires.
+	writeGroupQrcodeMeta(groupQrcodeMeta{
+		ExpiresAt: strings.TrimSpace(c.PostForm("expires_at")),
+		UpdatedAt: time.Now().Unix(),
+	})
+
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",
@@ -122,6 +178,9 @@ func DeleteGroupQrcode(c *gin.Context) {
 			common.ApiErrorMsg(c, "删除失败："+err.Error())
 			return
 		}
+	}
+	if p := groupQrcodeMetaPath(); p != "" {
+		_ = os.Remove(p)
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": ""})
 }
