@@ -18,32 +18,27 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { api } from '@/lib/api'
 
+export type AnomalyUserRow = {
+  id: number
+  username: string
+  status: number
+  role: number
+  remark: string
+  register_ip: string
+  last_login_ip: string
+  created_at: number
+  request_count: number
+}
+
 export async function getUserAnomalies(): Promise<{
   success: boolean
   data?: {
     ip_groups: Array<{
       ip: string
       accounts: number
-      users: Array<{
-        id: number
-        username: string
-        status: number
-        register_ip: string
-        last_login_ip: string
-        created_at: number
-        request_count: number
-      }>
+      users: Array<AnomalyUserRow>
     }>
-    idle_users: Array<{
-      id: number
-      username: string
-      status: number
-      register_ip: string
-      last_login_ip: string
-      created_at: number
-      request_count: number
-      checkin_days: number
-    }>
+    idle_users: Array<AnomalyUserRow & { checkin_days: number }>
     total_groups: number
     total_idle: number
   }

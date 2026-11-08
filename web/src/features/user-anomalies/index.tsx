@@ -28,19 +28,9 @@ import { Button } from '@/components/ui/button'
 import { formatTimestamp } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
-import { getUserAnomalies, updateAnomalyUserStatus } from './api'
+import { type AnomalyUserRow, getUserAnomalies, updateAnomalyUserStatus } from './api'
 
-type AnomalyUser = {
-  id: number
-  username: string
-  status: number
-  role: number
-  remark: string
-  register_ip: string
-  last_login_ip: string
-  created_at: number
-  request_count: number
-}
+type AnomalyUser = AnomalyUserRow
 
 type AnomalyIPGroup = {
   ip: string
