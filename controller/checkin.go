@@ -62,6 +62,8 @@ func DoCheckin(c *gin.Context) {
 		return
 	}
 	model.RecordLog(userId, model.LogTypeSystem, fmt.Sprintf("用户签到，获得额度 %s", logger.LogQuota(checkin.QuotaAwarded)))
+	// Check-in is also user activity, keep last_login_at fresh so admins can tell who is really active.
+	model.UpdateUserLastLoginAt(userId)
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "签到成功",
