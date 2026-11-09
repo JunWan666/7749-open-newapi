@@ -45,6 +45,7 @@ import {
   unignoreAnomalyUser,
   updateAnomalyUserStatus,
 } from './api'
+import { HandleNoteCell } from './handle-note-cell'
 
 type AnomalyUser = AnomalyUserRow
 
@@ -59,15 +60,17 @@ type IdleCheckinUser = AnomalyUser & { checkin_days: number }
 type AnomalyData = {
   ip_groups: AnomalyIPGroup[]
   idle_users: IdleCheckinUser[]
+  handled_users: AnomalyUser[]
   ignored_users: IgnoredAnomalyUser[]
   total_groups: number
   total_idle: number
+  total_handled: number
   total_ignored: number
 }
 
 const STATUS_SUSPICIOUS = 4
 const STATUS_ENABLED = 1
-type AnomalyTab = 'ip' | 'idle' | 'ignored'
+type AnomalyTab = 'ip' | 'idle' | 'handled' | 'ignored'
 
 function formatTokens(value: number): string {
   if (!value) {
@@ -96,9 +99,11 @@ export function UserAnomalies() {
   const payload: AnomalyData = data?.data ?? {
     ip_groups: [],
     idle_users: [],
+    handled_users: [],
     ignored_users: [],
     total_groups: 0,
     total_idle: 0,
+    total_handled: 0,
     total_ignored: 0,
   }
 
@@ -400,6 +405,92 @@ export function UserAnomalies() {
     )
   }
 
+  function renderHandledTab(): ReactNode {
+    if (payload.handled_users.length === 0) {
+      return (
+        <p className='text-muted-foreground rounded-lg border border-dashed px-3 py-12 text-center text-xs'>
+          {t('No handled accounts yet')}
+        </p>
+      )
+    }
+    return (
+      <div className='bg-card overflow-hidden rounded-xl border shadow-sm'>
+        <div className='overflow-x-auto'>
+          <table className='w-full min-w-[1060px] text-xs'>
+            <thead>
+              <tr className='bg-muted/40 border-b'>
+                <th className={cn(thClass, 'w-16')}>{t('ID')}</th>
+                <th className={thClass}>{t('Username')}</th>
+                <th className={thClass}>{t('Remark')}</th>
+                <th className={thClass}>{t('Status')}</th>
+                <th className={thClass}>{t('Handle note')}</th>
+                <th className={thClass}>{t('IP')}</th>
+                <th className={cn(thClass, 'text-right')}>{t('Calls')}</th>
+                <th className={cn(thClass, 'text-right')}>{t('Tokens used')}</th>
+                <th className={cn(thClass, 'text-right')}>{t('Actions')}</th>
+              </tr>
+            </thead>
+            <tbody className='divide-y'>
+              {payload.handled_users.map((user) => (
+                <tr key={user.id} className='hover:bg-muted/30'>
+                  <td className={cn(tdClass, 'font-mono')}>#{user.id}</td>
+                  <td className={tdClass}>{userCell(user)}</td>
+                  <td className={tdClass}>{remarkCell(user)}</td>
+                  <td className={tdClass}>
+                    <StatusBadge
+                      label={
+                        user.status === STATUS_SUSPICIOUS
+                          ? t('Suspicious')
+                          : t('Disabled')
+                      }
+                      variant={
+                        user.status === STATUS_SUSPICIOUS ? 'warning' : 'neutral'
+                      }
+                      copyable={false}
+                    />
+                  </td>
+                  <td className={tdClass}>
+                    <HandleNoteCell
+                      userId={user.id}
+                      note={user.handle_note}
+                    />
+                  </td>
+                  <td
+                    className={cn(
+                      tdClass,
+                      'text-muted-foreground font-mono whitespace-nowrap'
+                    )}
+                  >
+                    {user.register_ip || user.last_login_ip || '-'}
+                  </td>
+                  <td className={cn(tdClass, 'text-right')}>
+                    {user.request_count.toLocaleString()}
+                  </td>
+                  <td className={cn(tdClass, 'text-right')}>
+                    {formatTokens(user.total_tokens)}
+                  </td>
+                  <td className={cn(tdClass, 'text-right')}>
+                    <Button
+                      size='sm'
+                      variant='outline'
+                      disabled={busyId === user.id}
+                      onClick={() => {
+                        void mark(user.id, STATUS_ENABLED)
+                      }}
+                    >
+                      <CheckCircle2 className='mr-1 size-3.5' />
+                      {t('Restore')}
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )
+  }
+
   function renderIgnoredTab(): ReactNode {
     if (payload.ignored_users.length === 0) {
       return (
@@ -504,7 +595,7 @@ export function UserAnomalies() {
             value={tab}
             onValueChange={(value) => setTab(value as AnomalyTab)}
           >
-            <TabsList className='grid w-full max-w-xl grid-cols-3'>
+            <TabsList className='grid w-full max-w-2xl grid-cols-4'>
               <TabsTrigger value='ip' className='gap-1.5'>
                 <Users className='size-3.5' />
                 {t('Same IP')}
@@ -514,6 +605,11 @@ export function UserAnomalies() {
                 <AlertTriangle className='size-3.5' />
                 {t('Check-in only')}
                 <TabCount value={payload.total_idle} />
+              </TabsTrigger>
+              <TabsTrigger value='handled' className='gap-1.5'>
+                <Ban className='size-3.5' />
+                {t('Handled')}
+                <TabCount value={payload.total_handled} />
               </TabsTrigger>
               <TabsTrigger value='ignored' className='gap-1.5'>
                 <EyeOff className='size-3.5' />
@@ -527,6 +623,9 @@ export function UserAnomalies() {
             </TabsContent>
             <TabsContent value='idle' className='mt-5'>
               {renderIdleTab()}
+            </TabsContent>
+            <TabsContent value='handled' className='mt-5'>
+              {renderHandledTab()}
             </TabsContent>
             <TabsContent value='ignored' className='mt-5'>
               {renderIgnoredTab()}

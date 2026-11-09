@@ -29,6 +29,7 @@ export type AnomalyUserRow = {
   created_at: number
   request_count: number
   total_tokens: number
+  handle_note?: string
 }
 
 export async function getUserAnomalies(): Promise<{
@@ -40,9 +41,11 @@ export async function getUserAnomalies(): Promise<{
       users: Array<AnomalyUserRow>
     }>
     idle_users: Array<AnomalyUserRow & { checkin_days: number }>
+    handled_users: AnomalyUserRow[]
     ignored_users: IgnoredAnomalyUser[]
     total_groups: number
     total_idle: number
+    total_handled: number
     total_ignored: number
   }
 }> {
@@ -88,5 +91,16 @@ export async function unignoreAnomalyUser(
   userId: number
 ): Promise<{ success: boolean; message?: string }> {
   const res = await api.delete(`/api/user/anomalies/ignore/${userId}`)
+  return res.data
+}
+
+export async function updateAnomalyNote(
+  userId: number,
+  note: string
+): Promise<{ success: boolean; message?: string }> {
+  const res = await api.put('/api/user/anomalies/note', {
+    user_id: userId,
+    note,
+  })
   return res.data
 }

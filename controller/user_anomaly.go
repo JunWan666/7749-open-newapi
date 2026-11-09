@@ -23,6 +23,7 @@ type AnomalyUser struct {
 	CreatedAt    int64  `json:"created_at"`
 	RequestCount int    `json:"request_count"`
 	TotalTokens  int64  `json:"total_tokens"`
+	HandleNote   string `json:"handle_note"`
 }
 
 // IgnoredAnomalyUser adds ignore metadata on top of AnomalyUser.
@@ -141,7 +142,23 @@ func GetUserAnomalies(c *gin.Context) {
 		return
 	}
 
-	// --- 3. ignored accounts ---
+	// --- 3. handled accounts (suspicious / disabled, not ignored) ---
+	handledUsers := make([]AnomalyUser, 0)
+	handledQuery := `SELECT u.id, u.username, u.status, u.role, COALESCE(u.remark,'') AS remark,
+		COALESCE(u.register_ip,'') AS register_ip, COALESCE(u.last_login_ip,'') AS last_login_ip,
+		u.created_at, u.request_count,
+		COALESCE(n.note,'') AS handle_note,
+		COALESCE((SELECT SUM(l.prompt_tokens + l.completion_tokens) FROM logs l WHERE l.user_id = u.id AND l.type = 2), 0) AS total_tokens
+		FROM users u
+		LEFT JOIN anomaly_notes n ON n.user_id = u.id
+		WHERE u.deleted_at IS NULL AND u.status IN (?, ?)` + exclude + `
+		ORDER BY u.id DESC LIMIT 200`
+	if err := model.DB.Raw(handledQuery, common.UserStatusDisabled, common.UserStatusSuspicious).Scan(&handledUsers).Error; err != nil {
+		common.ApiError(c, err)
+		return
+	}
+
+	// --- 4. ignored accounts ---
 	ignoredQuery := `SELECT u.id, u.username, u.status, u.role, COALESCE(u.remark,'') AS remark,
 		COALESCE(u.register_ip,'') AS register_ip, COALESCE(u.last_login_ip,'') AS last_login_ip,
 		u.created_at, u.request_count,
@@ -160,9 +177,11 @@ func GetUserAnomalies(c *gin.Context) {
 		"data": gin.H{
 			"ip_groups":     ipGroups,
 			"idle_users":    idleUsers,
+			"handled_users": handledUsers,
 			"ignored_users": ignoredUsers,
 			"total_groups":  len(ipGroups),
 			"total_idle":    len(idleUsers),
+			"total_handled": len(handledUsers),
 			"total_ignored": len(ignoredUsers),
 		},
 	})
@@ -207,4 +226,39 @@ func UnignoreAnomalyUser(c *gin.Context) {
 	}
 	recordManageAuditFor(c, userId, "user.anomaly_unignore", map[string]interface{}{})
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": ""})
+}
+
+// UpdateAnomalyNote saves the admin note for a handled account.
+func UpdateAnomalyNote(c *gin.Context) {
+	var req struct {
+		UserId int    `json:"user_id"`
+		Note   string `json:"note"`
+	}
+	if err := common.DecodeJson(c.Request.Body, &req); err != nil || req.UserId <= 0 {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+	note := strings.TrimSpace(req.Note)
+	if len([]rune(note)) > 500 {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+	target, err := model.GetUserById(req.UserId, false)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	if err := model.SetAnomalyNote(req.UserId, note, common.GetTimestamp()); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	recordManageAuditFor(c, req.UserId, "user.anomaly_note", map[string]interface{}{
+		"username": target.Username,
+		"note":     note,
+	})
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "",
+		"data":    gin.H{"note": note},
+	})
 }
