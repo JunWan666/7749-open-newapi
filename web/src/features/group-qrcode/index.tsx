@@ -26,6 +26,7 @@ import {
   ZoomIn,
 } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
@@ -412,24 +413,26 @@ export function GroupQrcode() {
         </div>
       </SectionPageLayout.Content>
 
-      {zoom && (
-        <div
-          role='dialog'
-          aria-modal='true'
-          aria-label={t('WeChat Group QR Code')}
-          className='fixed inset-0 z-[100] flex cursor-zoom-out flex-col items-center justify-center gap-3 bg-black/85 p-4'
-          onClick={() => setZoom(false)}
-        >
-          <img
-            src={imageSrc}
-            alt={t('WeChat Group QR Code')}
-            className='max-h-[82vh] max-w-full rounded-xl bg-white object-contain p-3 shadow-2xl'
-          />
-          <span className='text-xs text-white/70'>
-            {t('Click anywhere to close')}
-          </span>
-        </div>
-      )}
+      {zoom &&
+        createPortal(
+          <div
+            role='dialog'
+            aria-modal='true'
+            aria-label={t('WeChat Group QR Code')}
+            className='fixed inset-0 z-[100] flex cursor-zoom-out flex-col items-center justify-center gap-3 bg-black/85 p-4'
+            onClick={() => setZoom(false)}
+          >
+            <img
+              src={imageSrc}
+              alt={t('WeChat Group QR Code')}
+              className='max-h-[82vh] max-w-full rounded-xl bg-white object-contain p-3 shadow-2xl'
+            />
+            <span className='text-xs text-white/70'>
+              {t('Click anywhere to close')}
+            </span>
+          </div>,
+          document.body
+        )}
     </SectionPageLayout>
   )
 }
