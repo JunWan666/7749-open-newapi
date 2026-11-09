@@ -29,6 +29,8 @@ export type AnomalyUserRow = {
   created_at: number
   request_count: number
   total_tokens: number
+  quota: number
+  used_quota: number
   handle_note?: string
 }
 
@@ -72,6 +74,8 @@ export type IgnoredAnomalyUser = {
   created_at: number
   request_count: number
   total_tokens: number
+  quota: number
+  used_quota: number
   ignore_reason: string
   ignored_at: number
 }

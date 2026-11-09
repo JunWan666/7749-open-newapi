@@ -34,7 +34,7 @@ import { SectionPageLayout } from '@/components/layout'
 import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { formatTimestamp } from '@/lib/format'
+import { formatQuota, formatTimestamp } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
 import {
@@ -238,6 +238,19 @@ export function UserAnomalies() {
     )
   }
 
+  /** 剩余额度 / 总额度 */
+  function quotaCell(user: AnomalyUser) {
+    const total = user.quota + user.used_quota
+    return (
+      <div className='flex flex-col items-end gap-0.5 whitespace-nowrap'>
+        <span className='tabular-nums'>{formatQuota(user.quota)}</span>
+        <span className='text-muted-foreground/60 text-[10px] tabular-nums'>
+          / {formatQuota(total)}
+        </span>
+      </div>
+    )
+  }
+
   const thClass =
     'text-muted-foreground px-3 py-2 text-left text-[11px] font-medium whitespace-nowrap'
   const tdClass = 'px-3 py-2 align-middle'
@@ -282,7 +295,7 @@ export function UserAnomalies() {
               />
             </div>
             <div className='overflow-x-auto'>
-              <table className='w-full min-w-[880px] text-xs'>
+              <table className='w-full min-w-[980px] text-xs'>
                 <thead>
                   <tr className='bg-muted/40 border-b'>
                     <th className={cn(thClass, 'w-16')}>{t('ID')}</th>
@@ -294,6 +307,7 @@ export function UserAnomalies() {
                     <th className={cn(thClass, 'text-right')}>
                       {t('Tokens used')}
                     </th>
+                    <th className={cn(thClass, 'text-right')}>{t('Quota')}</th>
                     <th className={cn(thClass, 'text-right')}>{t('Actions')}</th>
                   </tr>
                 </thead>
@@ -326,6 +340,9 @@ export function UserAnomalies() {
                         {formatTokens(user.total_tokens)}
                       </td>
                       <td className={cn(tdClass, 'text-right')}>
+                        {quotaCell(user)}
+                      </td>
+                      <td className={cn(tdClass, 'text-right')}>
                         {actionButtons(user)}
                       </td>
                     </tr>
@@ -350,7 +367,7 @@ export function UserAnomalies() {
     return (
       <div className='bg-card overflow-hidden rounded-xl border shadow-sm'>
         <div className='overflow-x-auto'>
-          <table className='w-full min-w-[820px] text-xs'>
+          <table className='w-full min-w-[920px] text-xs'>
             <thead>
               <tr className='bg-muted/40 border-b'>
                 <th className={cn(thClass, 'w-16')}>{t('ID')}</th>
@@ -362,6 +379,7 @@ export function UserAnomalies() {
                 <th className={cn(thClass, 'text-right')}>
                   {t('Tokens used')}
                 </th>
+                <th className={cn(thClass, 'text-right')}>{t('Quota')}</th>
                 <th className={cn(thClass, 'text-right')}>{t('Actions')}</th>
               </tr>
             </thead>
@@ -394,6 +412,9 @@ export function UserAnomalies() {
                     {formatTokens(user.total_tokens)}
                   </td>
                   <td className={cn(tdClass, 'text-right')}>
+                    {quotaCell(user)}
+                  </td>
+                  <td className={cn(tdClass, 'text-right')}>
                     {actionButtons(user)}
                   </td>
                 </tr>
@@ -416,7 +437,7 @@ export function UserAnomalies() {
     return (
       <div className='bg-card overflow-hidden rounded-xl border shadow-sm'>
         <div className='overflow-x-auto'>
-          <table className='w-full min-w-[1060px] text-xs'>
+          <table className='w-full min-w-[1160px] text-xs'>
             <thead>
               <tr className='bg-muted/40 border-b'>
                 <th className={cn(thClass, 'w-16')}>{t('ID')}</th>
@@ -427,6 +448,7 @@ export function UserAnomalies() {
                 <th className={thClass}>{t('IP')}</th>
                 <th className={cn(thClass, 'text-right')}>{t('Calls')}</th>
                 <th className={cn(thClass, 'text-right')}>{t('Tokens used')}</th>
+                <th className={cn(thClass, 'text-right')}>{t('Quota')}</th>
                 <th className={cn(thClass, 'text-right')}>{t('Actions')}</th>
               </tr>
             </thead>
@@ -470,6 +492,9 @@ export function UserAnomalies() {
                     {formatTokens(user.total_tokens)}
                   </td>
                   <td className={cn(tdClass, 'text-right')}>
+                    {quotaCell(user)}
+                  </td>
+                  <td className={cn(tdClass, 'text-right')}>
                     <Button
                       size='sm'
                       variant='outline'
@@ -502,7 +527,7 @@ export function UserAnomalies() {
     return (
       <div className='bg-card overflow-hidden rounded-xl border shadow-sm'>
         <div className='overflow-x-auto'>
-          <table className='w-full min-w-[860px] text-xs'>
+          <table className='w-full min-w-[980px] text-xs'>
             <thead>
               <tr className='bg-muted/40 border-b'>
                 <th className={cn(thClass, 'w-16')}>{t('ID')}</th>
@@ -511,6 +536,7 @@ export function UserAnomalies() {
                 <th className={thClass}>{t('IP')}</th>
                 <th className={cn(thClass, 'text-right')}>{t('Calls')}</th>
                 <th className={cn(thClass, 'text-right')}>{t('Tokens used')}</th>
+                <th className={cn(thClass, 'text-right')}>{t('Quota')}</th>
                 <th className={thClass}>{t('Ignored at')}</th>
                 <th className={cn(thClass, 'text-right')}>{t('Actions')}</th>
               </tr>
@@ -534,6 +560,9 @@ export function UserAnomalies() {
                   </td>
                   <td className={cn(tdClass, 'text-right')}>
                     {formatTokens(user.total_tokens)}
+                  </td>
+                  <td className={cn(tdClass, 'text-right')}>
+                    {quotaCell(user)}
                   </td>
                   <td
                     className={cn(
