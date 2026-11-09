@@ -40,8 +40,10 @@ export async function getUserAnomalies(): Promise<{
       users: Array<AnomalyUserRow>
     }>
     idle_users: Array<AnomalyUserRow & { checkin_days: number }>
+    ignored_users: IgnoredAnomalyUser[]
     total_groups: number
     total_idle: number
+    total_ignored: number
   }
 }> {
   const res = await api.get('/api/user/anomalies')
