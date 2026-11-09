@@ -32,7 +32,6 @@ import { toast } from 'sonner'
 import { SectionPageLayout } from '@/components/layout'
 import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import dayjs from '@/lib/dayjs'
 import { cn } from '@/lib/utils'
@@ -413,18 +412,24 @@ export function GroupQrcode() {
         </div>
       </SectionPageLayout.Content>
 
-      <Dialog open={zoom} onOpenChange={setZoom}>
-        <DialogContent className='max-w-[92vw] border-0 bg-transparent p-0 shadow-none sm:max-w-[560px]'>
-          <DialogTitle className='sr-only'>
-            {t('WeChat Group QR Code')}
-          </DialogTitle>
+      {zoom && (
+        <div
+          role='dialog'
+          aria-modal='true'
+          aria-label={t('WeChat Group QR Code')}
+          className='fixed inset-0 z-[100] flex cursor-zoom-out flex-col items-center justify-center gap-3 bg-black/85 p-4'
+          onClick={() => setZoom(false)}
+        >
           <img
             src={imageSrc}
             alt={t('WeChat Group QR Code')}
-            className='mx-auto max-h-[82vh] w-full rounded-lg bg-white object-contain p-3'
+            className='max-h-[82vh] max-w-full rounded-xl bg-white object-contain p-3 shadow-2xl'
           />
-        </DialogContent>
-      </Dialog>
+          <span className='text-xs text-white/70'>
+            {t('Click anywhere to close')}
+          </span>
+        </div>
+      )}
     </SectionPageLayout>
   )
 }

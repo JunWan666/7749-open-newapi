@@ -138,6 +138,8 @@ func SetApiRouter(router *gin.Engine) {
 				adminRoute.POST("/topup/complete", controller.AdminCompleteTopUp)
 				adminRoute.GET("/search", controller.SearchUsers)
 				adminRoute.GET("/anomalies", controller.GetUserAnomalies)
+				adminRoute.POST("/anomalies/ignore", controller.IgnoreAnomalyUser)
+				adminRoute.DELETE("/anomalies/ignore/:user_id", controller.UnignoreAnomalyUser)
 				adminRoute.GET("/:id/oauth/bindings", controller.GetUserOAuthBindingsByAdmin)
 				adminRoute.DELETE("/:id/oauth/bindings/:provider_id", controller.UnbindCustomOAuthByAdmin)
 				adminRoute.DELETE("/:id/bindings/:binding_type", controller.AdminClearUserBinding)

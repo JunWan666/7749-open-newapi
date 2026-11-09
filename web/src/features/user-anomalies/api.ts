@@ -55,3 +55,36 @@ export async function updateAnomalyUserStatus(
   const res = await api.put(`/api/user/${id}/status`, { status })
   return res.data
 }
+
+export type IgnoredAnomalyUser = {
+  id: number
+  username: string
+  status: number
+  role: number
+  remark: string
+  register_ip: string
+  last_login_ip: string
+  created_at: number
+  request_count: number
+  total_tokens: number
+  ignore_reason: string
+  ignored_at: number
+}
+
+export async function ignoreAnomalyUser(
+  userId: number,
+  reason?: string
+): Promise<{ success: boolean; message?: string }> {
+  const res = await api.post('/api/user/anomalies/ignore', {
+    user_id: userId,
+    reason: reason ?? '',
+  })
+  return res.data
+}
+
+export async function unignoreAnomalyUser(
+  userId: number
+): Promise<{ success: boolean; message?: string }> {
+  const res = await api.delete(`/api/user/anomalies/ignore/${userId}`)
+  return res.data
+}

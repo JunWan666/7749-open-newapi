@@ -281,6 +281,7 @@ func migrateDB() error {
 		&TwoFA{},
 		&TwoFABackupCode{},
 		&Checkin{},
+		&AnomalyIgnore{},
 		&SubscriptionOrder{},
 		&UserSubscription{},
 		&SubscriptionPreConsumeRecord{},

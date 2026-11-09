@@ -20,6 +20,7 @@ import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
+import { CopyButton } from '@/components/copy-button'
 import { Input } from '@/components/ui/input'
 
 import { updateUserRemark } from '../api'
@@ -99,20 +100,30 @@ export function UserRemarkCell(props: UserRemarkCellProps) {
   }
 
   return (
-    <button
-      type='button'
-      title={props.remark || t('Remark')}
-      className='hover:bg-muted w-[150px] cursor-pointer truncate rounded px-1.5 py-1 text-left text-xs transition-colors'
-      onClick={() => {
-        setValue(props.remark ?? '')
-        setEditing(true)
-      }}
-    >
+    <div className='group flex w-[150px] items-center gap-1'>
+      <button
+        type='button'
+        title={props.remark || t('Remark')}
+        className='hover:bg-muted min-w-0 flex-1 cursor-pointer truncate rounded px-1.5 py-1 text-left text-xs transition-colors'
+        onClick={() => {
+          setValue(props.remark ?? '')
+          setEditing(true)
+        }}
+      >
+        {props.remark ? (
+          <span className='text-success font-medium'>{props.remark}</span>
+        ) : (
+          <span className='text-muted-foreground/50'>{t('Remark')}</span>
+        )}
+      </button>
       {props.remark ? (
-        <span className='text-success font-medium'>{props.remark}</span>
-      ) : (
-        <span className='text-muted-foreground/50'>{t('Remark')}</span>
-      )}
-    </button>
+        <CopyButton
+          value={props.remark}
+          tooltip={t('Copy remark')}
+          className='size-6 opacity-0 transition-opacity group-hover:opacity-100'
+          iconClassName='size-3.5'
+        />
+      ) : null}
+    </div>
   )
 }

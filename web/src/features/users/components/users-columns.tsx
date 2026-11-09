@@ -20,6 +20,7 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 
+import { CopyButton } from '@/components/copy-button'
 import { BadgeCell } from '@/components/data-table'
 import { GroupBadge } from '@/components/group-badge'
 import { LongText } from '@/components/long-text'
@@ -40,6 +41,7 @@ import { EmailMaskHeaderButton, UserEmailCell } from './user-email-cell'
 import { UserQuotaCell } from './user-quota-cell'
 import { UserRemarkCell } from './user-remark-cell'
 import { UserStatusCell } from './user-status-cell'
+import { UserStatusFilterHeader } from './user-status-filter-header'
 
 export function useUsersColumns(): ColumnDef<User>[] {
   const { t } = useTranslation()
@@ -90,11 +92,17 @@ export function useUsersColumns(): ColumnDef<User>[] {
         const displayName = row.original.display_name
 
         return (
-          <div className='flex min-w-[160px] flex-col gap-1'>
-            <div className='flex items-center gap-2'>
+          <div className='group flex min-w-[160px] flex-col gap-1'>
+            <div className='flex items-center gap-1.5'>
               <LongText className='max-w-[140px] font-medium'>
                 {username}
               </LongText>
+              <CopyButton
+                value={username}
+                tooltip={t('Copy username')}
+                className='size-6 opacity-0 transition-opacity group-hover:opacity-100'
+                iconClassName='size-3.5'
+              />
             </div>
             {displayName && displayName !== username && (
               <LongText className='text-muted-foreground max-w-[180px] text-xs'>
@@ -134,7 +142,7 @@ export function useUsersColumns(): ColumnDef<User>[] {
     },
     {
       accessorKey: 'status',
-      header: t('Status'),
+      header: ({ column }) => <UserStatusFilterHeader column={column} />,
       cell: ({ row }) => <UserStatusCell user={row.original} />,
       filterFn: (row, id, value) => {
         return value.includes(String(row.getValue(id)))
