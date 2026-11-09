@@ -2480,6 +2480,8 @@
     "Last detected addable models": "上次检测到可加入模型",
     "Last Login": "最后登录",
     "Last Login IP": "最后登录 IP",
+    "Timeout / failed": "超时 / 失败",
+    "Each bar is one automatic check (about 20 min), showing the latest 20 rounds (~6.7h). Hover a bar for its time and latency. Green is fast, red is failing.": "每格代表一轮自动检测（约 20 分钟），显示最近 20 轮（约 6.7 小时）。鼠标悬停可查看该轮的时间与延迟；绿色流畅、红色异常。",
     "Copy username": "复制用户名",
     "Copy remark": "复制备注",
     "Filter by status": "按状态筛选",

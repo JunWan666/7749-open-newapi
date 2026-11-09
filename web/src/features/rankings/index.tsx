@@ -34,6 +34,7 @@ import {
 import { AboutSection } from './components/about-section'
 import { ModelHealthSection } from './components/model-health-section'
 import { TopUsersSection } from './components/top-users-section'
+import { RankingsPeriodTabs } from './components/rankings-hero'
 import { useRankings } from './hooks/use-rankings'
 import type { RankingPeriod } from './types'
 
@@ -121,7 +122,7 @@ export function Rankings() {
           <RankingsHero
             period={period}
             onPeriodChange={handlePeriodChange}
-            showPeriod={tab === 'platform'}
+            showPeriod={false}
           />
 
           <Tabs
@@ -135,8 +136,12 @@ export function Rankings() {
               <TabsTrigger value='about'>{t('About this site')}</TabsTrigger>
             </TabsList>
 
-            <TabsContent value='platform' className='mt-6 space-y-8'>
-              {platformContent}
+            <TabsContent value='platform' className='mt-4 space-y-6'>
+              <RankingsPeriodTabs
+                period={period}
+                onPeriodChange={handlePeriodChange}
+              />
+              <div className='space-y-8'>{platformContent}</div>
             </TabsContent>
 
             <TabsContent value='users' className='mt-6'>

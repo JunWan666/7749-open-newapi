@@ -17,11 +17,12 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useQuery } from '@tanstack/react-query'
-import { Crown, Users } from 'lucide-react'
-import { useState, type ReactNode } from 'react'
+import { CalendarRange, Crown, Users } from 'lucide-react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Skeleton } from '@/components/ui/skeleton'
+import dayjs from '@/lib/dayjs'
 import { cn } from '@/lib/utils'
 
 type TopUserRow = {
@@ -91,6 +92,15 @@ export function TopUsersSection() {
     queryFn: () => fetchTopUsers(days),
     staleTime: 60_000,
   })
+
+  // 口径提示：近 1 天 = 今天 0 点起；近 7/30 天 = 滚动窗口
+  const rangeLabel = useMemo(() => {
+    const now = dayjs()
+    if (days <= 1) {
+      return `${now.format('MM-DD')} 00:00 ~ ${now.format('MM-DD HH:mm')}`
+    }
+    return `${now.subtract(days, 'day').format('MM-DD HH:mm')} ~ ${now.format('MM-DD HH:mm')}`
+  }, [days])
 
   const rows = data?.rows ?? []
   const maxCalls = rows.length > 0 ? Math.max(...rows.map((r) => r.calls)) : 1
@@ -204,6 +214,7 @@ export function TopUsersSection() {
             {t('Names are partially masked')}
           </span>
         </div>
+        <div className='flex flex-col items-end gap-1'>
         <div className='bg-muted/60 inline-flex rounded-lg p-0.5'>
           {DAY_OPTIONS.map((option) => (
             <button
@@ -220,6 +231,11 @@ export function TopUsersSection() {
               {t('Last N days', { n: option })}
             </button>
           ))}
+        </div>
+        <span className='text-muted-foreground flex items-center gap-1 text-[11px]'>
+          <CalendarRange className='size-3' />
+          {rangeLabel}
+        </span>
         </div>
       </div>
 

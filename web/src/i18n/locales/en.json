@@ -2480,6 +2480,8 @@
     "Last detected addable models": "Last detected addable models",
     "Last Login": "Last Login",
     "Last Login IP": "Last Login IP",
+    "Timeout / failed": "Timeout / failed",
+    "Each bar is one automatic check (about 20 min), showing the latest 20 rounds (~6.7h). Hover a bar for its time and latency. Green is fast, red is failing.": "Each bar is one automatic check (about 20 min), showing the latest 20 rounds (~6.7h). Hover a bar for its time and latency. Green is fast, red is failing.",
     "Copy username": "Copy username",
     "Copy remark": "Copy remark",
     "Filter by status": "Filter by status",

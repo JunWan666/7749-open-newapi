@@ -22,6 +22,11 @@ import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Skeleton } from '@/components/ui/skeleton'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import dayjs from '@/lib/dayjs'
 import { cn } from '@/lib/utils'
 
@@ -92,11 +97,14 @@ function formatMs(ms: number | null | undefined): string {
   return `${Math.round(ms)}ms`
 }
 
-/** 最近 N 轮检测的历史色条（每格一轮，颜色代表延迟档位） */
+/** 最近若干轮检测的历史色条（每格一轮，颜色代表延迟档位，悬停显示具体数值） */
+const BAR_BUCKETS = 20
+
 function HistoryBar(props: {
   levels?: string[]
   ms?: Array<number | null>
-  label: (level: string, ms: number | null) => string
+  updatedAt?: number
+  intervalSeconds?: number
 }) {
   const { t } = useTranslation()
   const levels = props.levels ?? []
@@ -105,20 +113,42 @@ function HistoryBar(props: {
       <span className='text-muted-foreground/50 text-[10px]'>{t('No history')}</span>
     )
   }
-  const start = Math.max(0, levels.length - 60)
+
+  const total = levels.length
+  const start = Math.max(0, total - BAR_BUCKETS)
+  const interval = props.intervalSeconds ?? 1200
+
   return (
     <div className='flex items-center gap-[2px]'>
       {levels.slice(start).map((level, offset) => {
-        const ms = props.ms?.[start + offset] ?? null
+        const bucketIndex = start + offset
+        const ms = props.ms?.[bucketIndex] ?? null
+        const roundsAgo = total - 1 - bucketIndex
+        const ts = props.updatedAt
+          ? props.updatedAt - roundsAgo * interval
+          : null
+        const timeLabel = ts ? dayjs.unix(ts).format('MM-DD HH:mm') : ''
+        const valueLabel = ms ? formatMs(ms) : t('Timeout / failed')
+
         return (
-          <span
-            key={`${level}-${start + offset}`}
-            title={props.label(level, ms)}
-            className={cn(
-              'h-4 w-[3px] rounded-[1px] transition-opacity hover:opacity-70',
-              LEVEL_BG[level] ?? LEVEL_BG.green
-            )}
-          />
+          <Tooltip key={`${level}-${bucketIndex}`}>
+            <TooltipTrigger
+              render={
+                <span
+                  className={cn(
+                    'h-4 w-[3px] cursor-help rounded-[1px] transition-opacity hover:opacity-70',
+                    LEVEL_BG[level] ?? LEVEL_BG.green
+                  )}
+                />
+              }
+            />
+            <TooltipContent>
+              <p className='text-xs'>{timeLabel}</p>
+              <p className='text-xs opacity-80'>
+                {level} · {valueLabel}
+              </p>
+            </TooltipContent>
+          </Tooltip>
         )
       })}
     </div>
@@ -142,9 +172,11 @@ export function ModelHealthSection() {
   const activeChannel =
     channels.find((channel) => channel.id === activeChannelId) ?? channels[0] ?? null
 
-  function levelLabel(level: string, ms: number | null): string {
-    return `${level}${ms ? ` · ${formatMs(ms)}` : ''}`
-  }
+  // 每格代表一轮检测的时长（秒）
+  const barIntervalSeconds =
+    data?.history_span_minutes && data?.history_buckets
+      ? Math.round((data.history_span_minutes * 60) / data.history_buckets)
+      : 1200
 
   function renderModels(channel: HealthChannel): ReactNode {
     const history = channel.history ?? {}
@@ -198,7 +230,8 @@ export function ModelHealthSection() {
                     <HistoryBar
                       levels={history[model.model]}
                       ms={historyMs[model.model]}
-                      label={levelLabel}
+                      updatedAt={data?.updated_at}
+                      intervalSeconds={barIntervalSeconds}
                     />
                   </td>
                   <td className='px-3 py-2 text-right'>
@@ -292,7 +325,7 @@ export function ModelHealthSection() {
         <div className='text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]'>
           <span>
             {t(
-              'Each square is one automatic check (~20 min). Green is fast, red is failing.'
+              'Each bar is one automatic check (about 20 min), showing the latest 20 rounds (~6.7h). Hover a bar for its time and latency. Green is fast, red is failing.'
             )}
           </span>
           {data?.history_span_minutes ? (
