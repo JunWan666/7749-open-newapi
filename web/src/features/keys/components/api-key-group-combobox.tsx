@@ -111,7 +111,7 @@ export function ApiKeyGroupCombobox({
               'border-input bg-muted/40 hover:bg-muted/55 hover:text-foreground active:bg-background data-popup-open:border-ring data-popup-open:bg-background data-popup-open:ring-ring/20 relative h-auto w-full justify-between gap-2 rounded-lg px-3 py-2 text-start shadow-none transition-[background-color,border-color,box-shadow] duration-150 data-popup-open:ring-[3px]',
               compact
                 ? 'h-8 min-h-8 rounded-md px-2 py-0 text-xs leading-none'
-                : 'min-h-14 sm:min-h-20 sm:gap-3 sm:px-4 sm:py-3',
+                : 'min-h-10 gap-1.5 px-2.5 py-1 sm:min-h-12 sm:gap-2 sm:px-3 sm:py-1.5',
               isAutoSelected &&
                 cn(
                   AUTO_GROUP_FRAME_CLASS_NAME,
@@ -130,7 +130,7 @@ export function ApiKeyGroupCombobox({
               {selectedOption?.label || placeholder || t('Select a group')}
             </span>
             {!compact && selectedOption?.desc && (
-              <span className='text-muted-foreground block truncate text-[11px] sm:text-xs'>
+              <span className='text-muted-foreground block truncate text-[10px] leading-tight'>
                 {selectedOption.desc}
               </span>
             )}
