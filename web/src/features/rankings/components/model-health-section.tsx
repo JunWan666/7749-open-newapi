@@ -119,7 +119,7 @@ function HistoryBar(props: {
   const interval = props.intervalSeconds ?? 1200
 
   return (
-    <div className='flex items-center gap-[2px]'>
+    <div className='flex w-[260px] items-center gap-[3px]'>
       {levels.slice(start).map((level, offset) => {
         const bucketIndex = start + offset
         const ms = props.ms?.[bucketIndex] ?? null
@@ -136,7 +136,7 @@ function HistoryBar(props: {
               render={
                 <span
                   className={cn(
-                    'h-4 w-[3px] cursor-help rounded-[1px] transition-opacity hover:opacity-70',
+                    'h-4 min-w-[4px] flex-1 cursor-help rounded-[2px] transition-all hover:scale-y-125 hover:opacity-80',
                     LEVEL_BG[level] ?? LEVEL_BG.green
                   )}
                 />
@@ -188,7 +188,7 @@ export function ModelHealthSection() {
             <thead>
               <tr className='bg-muted/40 text-muted-foreground border-b text-[11px]'>
                 <th className='px-3 py-2 text-left font-medium'>{t('Model')}</th>
-                <th className='px-3 py-2 text-left font-medium'>
+                <th className='w-[280px] px-3 py-2 text-left font-medium'>
                   {t('Recent checks')}
                 </th>
                 <th className='px-3 py-2 text-right font-medium'>
