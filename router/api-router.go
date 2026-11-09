@@ -194,15 +194,21 @@ func SetApiRouter(router *gin.Engine) {
 		apiRouter.GET("/subscription/epay/notify", controller.SubscriptionEpayNotify)
 		apiRouter.GET("/subscription/epay/return", controller.SubscriptionEpayReturn)
 		apiRouter.POST("/subscription/epay/return", anonymousRequestBodyLimit, controller.SubscriptionEpayReturn)
+		// 微信群二维码：管理员即可上传/删除（不要求 root）
+		qrcodeRoute := apiRouter.Group("/option/group-qrcode")
+		qrcodeRoute.Use(middleware.AdminAuth())
+		{
+			qrcodeRoute.GET("/meta", controller.GetGroupQrcodeMeta)
+			qrcodeRoute.POST("", controller.UploadGroupQrcode)
+			qrcodeRoute.DELETE("", controller.DeleteGroupQrcode)
+		}
+
 		optionRoute := apiRouter.Group("/option")
 		optionRoute.Use(middleware.RootAuth())
 		{
 			optionRoute.GET("/", controller.GetOptions)
 			optionRoute.PUT("/", controller.UpdateOption)
 			optionRoute.POST("/payment_compliance", controller.ConfirmPaymentCompliance)
-			optionRoute.GET("/group-qrcode/meta", controller.GetGroupQrcodeMeta)
-			optionRoute.POST("/group-qrcode", controller.UploadGroupQrcode)
-			optionRoute.DELETE("/group-qrcode", controller.DeleteGroupQrcode)
 			optionRoute.GET("/channel_affinity_cache", controller.GetChannelAffinityCacheStats)
 			optionRoute.DELETE("/channel_affinity_cache", controller.ClearChannelAffinityCache)
 			optionRoute.POST("/rest_model_ratio", controller.ResetModelRatio)

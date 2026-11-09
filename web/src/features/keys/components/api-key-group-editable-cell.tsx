@@ -103,6 +103,7 @@ export function ApiKeyGroupEditableCell(props: ApiKeyGroupEditableCellProps) {
         void handleChange(value)
       }}
       disabled={saving}
+      compact
     />
   )
 }
