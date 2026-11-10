@@ -24,6 +24,7 @@ import {
   EyeOff,
   Eye,
   RefreshCw,
+  Search,
   Users,
 } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
@@ -34,6 +35,7 @@ import { SectionPageLayout } from '@/components/layout'
 import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { formatQuota, formatTimestamp } from '@/lib/format'
 import { cn } from '@/lib/utils'
@@ -50,6 +52,7 @@ import {
   updateAnomalyUserStatus,
 } from './api'
 import { HandleNoteCell } from './handle-note-cell'
+import { RemarkEditCell } from './remark-edit-cell'
 
 type AnomalyUser = AnomalyUserRow
 
@@ -96,6 +99,19 @@ export function UserAnomalies() {
   const [tab, setTab] = useState<AnomalyTab>('ip')
   const [selected, setSelected] = useState<Set<number>>(new Set())
   const [batchBusy, setBatchBusy] = useState(false)
+  const [keyword, setKeyword] = useState('')
+
+  const search = keyword.trim().toLowerCase()
+
+  /** 用户名 / 备注 / IP 模糊匹配 */
+  function matches(user: AnomalyUser): boolean {
+    if (!search) {
+      return true
+    }
+    return [user.username, user.remark, user.register_ip, user.last_login_ip]
+      .filter(Boolean)
+      .some((value) => String(value).toLowerCase().includes(search))
+  }
 
   function changeTab(next: string) {
     setTab(next as AnomalyTab)
@@ -105,6 +121,7 @@ export function UserAnomalies() {
   const { data, isFetching, refetch } = useQuery({
     queryKey: ['user-anomalies'],
     queryFn: getUserAnomalies,
+    staleTime: 60_000,
   })
 
   const payload: AnomalyData = data?.data ?? {
@@ -402,15 +419,9 @@ export function UserAnomalies() {
     )
   }
 
+  /** 备注单元格：可直接编辑（保存到用户备注） */
   function remarkCell(user: AnomalyUser) {
-    if (!user.remark) {
-      return <span className='text-muted-foreground/40'>-</span>
-    }
-    return (
-      <span className='text-success max-w-[120px] truncate font-medium'>
-        {user.remark}
-      </span>
-    )
+    return <RemarkEditCell userId={user.id} remark={user.remark} />
   }
 
   /** 行首复选框 */
@@ -453,7 +464,10 @@ export function UserAnomalies() {
     }
     return (
       <div className='flex flex-col gap-4'>
-        {payload.ip_groups.map((group) => (
+        {payload.ip_groups
+          .map((group) => ({ ...group, users: group.users.filter(matches) }))
+          .filter((group) => group.users.length > 0)
+          .map((group) => (
           <div
             key={group.ip}
             className={cn(
@@ -589,7 +603,7 @@ export function UserAnomalies() {
               </tr>
             </thead>
             <tbody className='divide-y'>
-              {payload.idle_users.map((user) => (
+              {payload.idle_users.filter(matches).map((user) => (
                 <tr key={user.id} className='hover:bg-muted/30'>
                   {selectCell(user)}
                   <td className={cn(tdClass, 'font-mono')}>#{user.id}</td>
@@ -667,7 +681,7 @@ export function UserAnomalies() {
               </tr>
             </thead>
             <tbody className='divide-y'>
-              {payload.handled_users.map((user) => (
+              {payload.handled_users.filter(matches).map((user) => (
                 <tr key={user.id} className='hover:bg-muted/30'>
                   {selectCell(user)}
                   <td className={cn(tdClass, 'font-mono')}>#{user.id}</td>
@@ -765,7 +779,7 @@ export function UserAnomalies() {
               </tr>
             </thead>
             <tbody className='divide-y'>
-              {payload.ignored_users.map((user) => (
+              {payload.ignored_users.filter(matches).map((user) => (
                 <tr key={user.id} className='hover:bg-muted/30'>
                   {selectCell(user)}
                   <td className={cn(tdClass, 'font-mono')}>#{user.id}</td>
@@ -843,6 +857,23 @@ export function UserAnomalies() {
               'Accounts sharing one IP, and accounts that only check in without ever calling a model. Shared IPs can be normal (school / office NAT), so review before acting.'
             )}
           </p>
+
+          <div className='flex flex-wrap items-center gap-2'>
+            <div className='relative w-full max-w-xs'>
+              <Search className='text-muted-foreground absolute top-1/2 left-2.5 size-4 -translate-y-1/2' />
+              <Input
+                value={keyword}
+                onChange={(event) => setKeyword(event.target.value)}
+                placeholder={t('Search username / remark / IP')}
+                className='h-8 pl-8 text-xs'
+              />
+            </div>
+            {search && (
+              <span className='text-muted-foreground text-[11px]'>
+                {t('Filtering by keyword')}: {keyword}
+              </span>
+            )}
+          </div>
 
           {batchBar()}
 

@@ -137,3 +137,11 @@ export async function batchUnignoreAnomalyUsers(
   })
   return res.data
 }
+
+export async function updateAnomalyUserRemark(
+  userId: number,
+  remark: string
+): Promise<{ success: boolean; message?: string }> {
+  const res = await api.put(`/api/user/${userId}/remark`, { remark })
+  return res.data
+}

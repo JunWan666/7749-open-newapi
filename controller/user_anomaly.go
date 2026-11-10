@@ -4,12 +4,30 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/i18n"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/gin-gonic/gin"
 )
+
+// 异常列表涉及多张表聚合（logs 表数据量大），加 60 秒内存缓存避免重复计算
+var anomalyCache struct {
+	sync.Mutex
+	payload gin.H
+	expire  time.Time
+}
+
+const anomalyCacheTTL = 60 * time.Second
+
+func invalidateAnomalyCache() {
+	anomalyCache.Lock()
+	anomalyCache.payload = nil
+	anomalyCache.expire = time.Time{}
+	anomalyCache.Unlock()
+}
 
 // AnomalyUser is a lightweight user row used by the anomaly dashboard.
 type AnomalyUser struct {
@@ -64,6 +82,16 @@ func anomalyExcludeClause(ignoredIds []int) string {
 //  2. accounts that only check in and never call any model
 //  3. ignored accounts (kept for reference, excluded from the lists above)
 func GetUserAnomalies(c *gin.Context) {
+	// 命中缓存直接返回
+	anomalyCache.Lock()
+	if anomalyCache.payload != nil && time.Now().Before(anomalyCache.expire) {
+		cached := anomalyCache.payload
+		anomalyCache.Unlock()
+		c.JSON(http.StatusOK, gin.H{"success": true, "data": cached, "cached": true})
+		return
+	}
+	anomalyCache.Unlock()
+
 	ignoredIds, err := model.GetAnomalyIgnoredUserIds()
 	if err != nil {
 		common.ApiError(c, err)
@@ -176,23 +204,27 @@ func GetUserAnomalies(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"data": gin.H{
-			"ip_groups":     ipGroups,
-			"idle_users":    idleUsers,
-			"handled_users": handledUsers,
-			"ignored_users": ignoredUsers,
-			"total_groups":  len(ipGroups),
-			"total_idle":    len(idleUsers),
-			"total_handled": len(handledUsers),
-			"total_ignored": len(ignoredUsers),
-		},
-	})
+	payload := gin.H{
+		"ip_groups":     ipGroups,
+		"idle_users":    idleUsers,
+		"handled_users": handledUsers,
+		"ignored_users": ignoredUsers,
+		"total_groups":  len(ipGroups),
+		"total_idle":    len(idleUsers),
+		"total_handled": len(handledUsers),
+		"total_ignored": len(ignoredUsers),
+	}
+	anomalyCache.Lock()
+	anomalyCache.payload = payload
+	anomalyCache.expire = time.Now().Add(anomalyCacheTTL)
+	anomalyCache.Unlock()
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": payload})
 }
 
 // IgnoreAnomalyUser marks an account as reviewed so it stops appearing in the lists.
 func IgnoreAnomalyUser(c *gin.Context) {
+	invalidateAnomalyCache()
 	var req struct {
 		UserId int    `json:"user_id"`
 		Reason string `json:"reason"`
@@ -219,6 +251,7 @@ func IgnoreAnomalyUser(c *gin.Context) {
 
 // UnignoreAnomalyUser removes an ignore entry.
 func UnignoreAnomalyUser(c *gin.Context) {
+	invalidateAnomalyCache()
 	userId, err := strconv.Atoi(c.Param("user_id"))
 	if err != nil || userId <= 0 {
 		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
@@ -234,6 +267,7 @@ func UnignoreAnomalyUser(c *gin.Context) {
 
 // UpdateAnomalyNote saves the admin note for a handled account.
 func UpdateAnomalyNote(c *gin.Context) {
+	invalidateAnomalyCache()
 	var req struct {
 		UserId int    `json:"user_id"`
 		Note   string `json:"note"`
@@ -286,6 +320,7 @@ func sanitizeAnomalyIds(c *gin.Context, ids []int) []int {
 
 // BatchUpdateAnomalyStatus changes the status of many accounts at once (bulk release / mark suspicious).
 func BatchUpdateAnomalyStatus(c *gin.Context) {
+	invalidateAnomalyCache()
 	var req struct {
 		UserIds []int `json:"user_ids"`
 		Status  int   `json:"status"`
@@ -328,6 +363,7 @@ func BatchUpdateAnomalyStatus(c *gin.Context) {
 
 // BatchIgnoreAnomalyUsers adds several accounts to the ignore list.
 func BatchIgnoreAnomalyUsers(c *gin.Context) {
+	invalidateAnomalyCache()
 	var req struct {
 		UserIds []int  `json:"user_ids"`
 		Reason  string `json:"reason"`
@@ -357,6 +393,7 @@ func BatchIgnoreAnomalyUsers(c *gin.Context) {
 
 // BatchUnignoreAnomalyUsers removes several accounts from the ignore list.
 func BatchUnignoreAnomalyUsers(c *gin.Context) {
+	invalidateAnomalyCache()
 	var req struct {
 		UserIds []int `json:"user_ids"`
 	}
