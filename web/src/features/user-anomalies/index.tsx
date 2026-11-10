@@ -33,6 +33,7 @@ import { toast } from 'sonner'
 import { SectionPageLayout } from '@/components/layout'
 import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { formatQuota, formatTimestamp } from '@/lib/format'
 import { cn } from '@/lib/utils'
@@ -40,6 +41,9 @@ import { cn } from '@/lib/utils'
 import {
   type AnomalyUserRow,
   type IgnoredAnomalyUser,
+  batchIgnoreAnomalyUsers,
+  batchUnignoreAnomalyUsers,
+  batchUpdateAnomalyStatus,
   getUserAnomalies,
   ignoreAnomalyUser,
   unignoreAnomalyUser,
@@ -90,6 +94,13 @@ export function UserAnomalies() {
   const queryClient = useQueryClient()
   const [busyId, setBusyId] = useState<number | null>(null)
   const [tab, setTab] = useState<AnomalyTab>('ip')
+  const [selected, setSelected] = useState<Set<number>>(new Set())
+  const [batchBusy, setBatchBusy] = useState(false)
+
+  function changeTab(next: string) {
+    setTab(next as AnomalyTab)
+    setSelected(new Set())
+  }
 
   const { data, isFetching, refetch } = useQuery({
     queryKey: ['user-anomalies'],
@@ -161,6 +172,170 @@ export function UserAnomalies() {
     } finally {
       setBusyId(null)
     }
+  }
+
+  function toggleOne(id: number) {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
+  }
+
+  function toggleAll(ids: number[], checked: boolean) {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      ids.forEach((id) => {
+        if (checked) {
+          next.add(id)
+        } else {
+          next.delete(id)
+        }
+      })
+      return next
+    })
+  }
+
+  async function runBatch(
+    action: 'enable' | 'suspicious' | 'ignore' | 'unignore'
+  ) {
+    const ids = [...selected]
+    if (ids.length === 0 || batchBusy) {
+      return
+    }
+    setBatchBusy(true)
+    try {
+      let res: { success: boolean; message?: string } | null = null
+      if (action === 'enable') {
+        res = await batchUpdateAnomalyStatus(ids, STATUS_ENABLED)
+      } else if (action === 'suspicious') {
+        res = await batchUpdateAnomalyStatus(ids, STATUS_SUSPICIOUS)
+      } else if (action === 'ignore') {
+        res = await batchIgnoreAnomalyUsers(ids)
+      } else {
+        res = await batchUnignoreAnomalyUsers(ids)
+      }
+      if (res?.success) {
+        toast.success(t('Updated N accounts', { n: ids.length }))
+        setSelected(new Set())
+        await refreshAll()
+      } else {
+        toast.error(res?.message || t('Save failed'))
+      }
+    } catch {
+      toast.error(t('Save failed'))
+    } finally {
+      setBatchBusy(false)
+    }
+  }
+
+  /** 当前 Tab 可见的所有 user id */
+  function visibleUserIds(): number[] {
+    if (tab === 'ip') {
+      return payload.ip_groups.flatMap((group) => group.users.map((u) => u.id))
+    }
+    if (tab === 'idle') {
+      return payload.idle_users.map((u) => u.id)
+    }
+    if (tab === 'handled') {
+      return payload.handled_users.map((u) => u.id)
+    }
+    return payload.ignored_users.map((u) => u.id)
+  }
+
+  function selectAllState(): 'none' | 'some' | 'all' {
+    const ids = visibleUserIds()
+    if (ids.length === 0) {
+      return 'none'
+    }
+    const picked = ids.filter((id) => selected.has(id)).length
+    if (picked === 0) {
+      return 'none'
+    }
+    return picked === ids.length ? 'all' : 'some'
+  }
+
+  function toggleAllVisible(checked: boolean) {
+    toggleAll(visibleUserIds(), checked)
+  }
+
+  function batchBar(): ReactNode {
+    if (selected.size === 0) {
+      return null
+    }
+    return (
+      <div className='bg-muted/50 flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2'>
+        <span className='text-xs font-medium'>
+          {t('Selected N', { n: selected.size })}
+        </span>
+        <div className='ml-auto flex flex-wrap items-center gap-2'>
+          {(tab === 'ip' || tab === 'idle') && (
+            <Button
+              size='sm'
+              variant='destructive'
+              disabled={batchBusy}
+              onClick={() => {
+                void runBatch('suspicious')
+              }}
+            >
+              <Ban className='mr-1 size-3.5' />
+              {t('Mark suspicious')}
+            </Button>
+          )}
+          {tab === 'handled' && (
+            <Button
+              size='sm'
+              variant='default'
+              disabled={batchBusy}
+              onClick={() => {
+                void runBatch('enable')
+              }}
+            >
+              <CheckCircle2 className='mr-1 size-3.5' />
+              {t('Restore')}
+            </Button>
+          )}
+          {(tab === 'ip' || tab === 'idle' || tab === 'handled') && (
+            <Button
+              size='sm'
+              variant='outline'
+              disabled={batchBusy}
+              onClick={() => {
+                void runBatch('ignore')
+              }}
+            >
+              <EyeOff className='mr-1 size-3.5' />
+              {t('Ignore')}
+            </Button>
+          )}
+          {tab === 'ignored' && (
+            <Button
+              size='sm'
+              variant='outline'
+              disabled={batchBusy}
+              onClick={() => {
+                void runBatch('unignore')
+              }}
+            >
+              <Eye className='mr-1 size-3.5' />
+              {t('Unignore')}
+            </Button>
+          )}
+          <Button
+            size='sm'
+            variant='ghost'
+            disabled={batchBusy}
+            onClick={() => setSelected(new Set())}
+          >
+            {t('Clear selection')}
+          </Button>
+        </div>
+      </div>
+    )
   }
 
   function actionButtons(user: AnomalyUser) {
@@ -238,6 +413,19 @@ export function UserAnomalies() {
     )
   }
 
+  /** 行首复选框 */
+  function selectCell(user: AnomalyUser): ReactNode {
+    return (
+      <td className='px-2 py-2'>
+        <Checkbox
+          checked={selected.has(user.id)}
+          onCheckedChange={() => toggleOne(user.id)}
+          aria-label={t('Select row')}
+        />
+      </td>
+    )
+  }
+
   /** 剩余额度 / 总额度 */
   function quotaCell(user: AnomalyUser) {
     const total = user.quota + user.used_quota
@@ -298,6 +486,14 @@ export function UserAnomalies() {
               <table className='w-full min-w-[980px] text-xs'>
                 <thead>
                   <tr className='bg-muted/40 border-b'>
+                    <th className='w-10 px-2 py-2'>
+                      <Checkbox
+                        checked={selectAllState() === 'all'}
+                        indeterminate={selectAllState() === 'some'}
+                        onCheckedChange={(value) => toggleAllVisible(!!value)}
+                        aria-label={t('Select all')}
+                      />
+                    </th>
                     <th className={cn(thClass, 'w-16')}>{t('ID')}</th>
                     <th className={thClass}>{t('Username')}</th>
                     <th className={thClass}>{t('Remark')}</th>
@@ -314,6 +510,7 @@ export function UserAnomalies() {
                 <tbody className='divide-y'>
                   {group.users.map((user) => (
                     <tr key={user.id} className='hover:bg-muted/30'>
+                      {selectCell(user)}
                       <td className={cn(tdClass, 'font-mono')}>#{user.id}</td>
                       <td className={tdClass}>{userCell(user)}</td>
                       <td className={tdClass}>{remarkCell(user)}</td>
@@ -370,6 +567,14 @@ export function UserAnomalies() {
           <table className='w-full min-w-[920px] text-xs'>
             <thead>
               <tr className='bg-muted/40 border-b'>
+                <th className='w-10 px-2 py-2'>
+                  <Checkbox
+                    checked={selectAllState() === 'all'}
+                    indeterminate={selectAllState() === 'some'}
+                    onCheckedChange={(value) => toggleAllVisible(!!value)}
+                    aria-label={t('Select all')}
+                  />
+                </th>
                 <th className={cn(thClass, 'w-16')}>{t('ID')}</th>
                 <th className={thClass}>{t('Username')}</th>
                 <th className={thClass}>{t('Remark')}</th>
@@ -386,6 +591,7 @@ export function UserAnomalies() {
             <tbody className='divide-y'>
               {payload.idle_users.map((user) => (
                 <tr key={user.id} className='hover:bg-muted/30'>
+                  {selectCell(user)}
                   <td className={cn(tdClass, 'font-mono')}>#{user.id}</td>
                   <td className={tdClass}>{userCell(user)}</td>
                   <td className={tdClass}>{remarkCell(user)}</td>
@@ -440,6 +646,14 @@ export function UserAnomalies() {
           <table className='w-full min-w-[1160px] text-xs'>
             <thead>
               <tr className='bg-muted/40 border-b'>
+                <th className='w-10 px-2 py-2'>
+                  <Checkbox
+                    checked={selectAllState() === 'all'}
+                    indeterminate={selectAllState() === 'some'}
+                    onCheckedChange={(value) => toggleAllVisible(!!value)}
+                    aria-label={t('Select all')}
+                  />
+                </th>
                 <th className={cn(thClass, 'w-16')}>{t('ID')}</th>
                 <th className={thClass}>{t('Username')}</th>
                 <th className={thClass}>{t('Remark')}</th>
@@ -455,6 +669,7 @@ export function UserAnomalies() {
             <tbody className='divide-y'>
               {payload.handled_users.map((user) => (
                 <tr key={user.id} className='hover:bg-muted/30'>
+                  {selectCell(user)}
                   <td className={cn(tdClass, 'font-mono')}>#{user.id}</td>
                   <td className={tdClass}>{userCell(user)}</td>
                   <td className={tdClass}>{remarkCell(user)}</td>
@@ -530,6 +745,14 @@ export function UserAnomalies() {
           <table className='w-full min-w-[980px] text-xs'>
             <thead>
               <tr className='bg-muted/40 border-b'>
+                <th className='w-10 px-2 py-2'>
+                  <Checkbox
+                    checked={selectAllState() === 'all'}
+                    indeterminate={selectAllState() === 'some'}
+                    onCheckedChange={(value) => toggleAllVisible(!!value)}
+                    aria-label={t('Select all')}
+                  />
+                </th>
                 <th className={cn(thClass, 'w-16')}>{t('ID')}</th>
                 <th className={thClass}>{t('Username')}</th>
                 <th className={thClass}>{t('Remark')}</th>
@@ -544,6 +767,7 @@ export function UserAnomalies() {
             <tbody className='divide-y'>
               {payload.ignored_users.map((user) => (
                 <tr key={user.id} className='hover:bg-muted/30'>
+                  {selectCell(user)}
                   <td className={cn(tdClass, 'font-mono')}>#{user.id}</td>
                   <td className={tdClass}>{userCell(user)}</td>
                   <td className={tdClass}>{remarkCell(user)}</td>
@@ -620,9 +844,11 @@ export function UserAnomalies() {
             )}
           </p>
 
+          {batchBar()}
+
           <Tabs
             value={tab}
-            onValueChange={(value) => setTab(value as AnomalyTab)}
+            onValueChange={changeTab}
           >
             <TabsList className='grid w-full max-w-2xl grid-cols-4'>
               <TabsTrigger value='ip' className='gap-1.5'>

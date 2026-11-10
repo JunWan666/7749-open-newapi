@@ -1,5 +1,9 @@
 package model
 
+import (
+	"gorm.io/gorm/clause"
+)
+
 // AnomalyIgnore marks an account as "reviewed and fine" so it no longer shows up
 // in the anomaly dashboard, while keeping a record of who ignored it and why.
 type AnomalyIgnore struct {
@@ -36,4 +40,27 @@ func AddAnomalyIgnore(userId int, reason string) error {
 // RemoveAnomalyIgnore deletes an ignore entry.
 func RemoveAnomalyIgnore(userId int) error {
 	return DB.Where("user_id = ?", userId).Delete(&AnomalyIgnore{}).Error
+}
+
+// BatchAddAnomalyIgnore ignores several users at once.
+func BatchAddAnomalyIgnore(userIds []int, reason string, now int64) error {
+	if len(userIds) == 0 {
+		return nil
+	}
+	rows := make([]AnomalyIgnore, 0, len(userIds))
+	for _, id := range userIds {
+		rows = append(rows, AnomalyIgnore{UserId: id, Reason: reason, CreatedAt: now})
+	}
+	return DB.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "user_id"}},
+		DoUpdates: clause.AssignmentColumns([]string{"reason"}),
+	}).Create(&rows).Error
+}
+
+// BatchRemoveAnomalyIgnore removes ignore entries for several users.
+func BatchRemoveAnomalyIgnore(userIds []int) error {
+	if len(userIds) == 0 {
+		return nil
+	}
+	return DB.Where("user_id IN ?", userIds).Delete(&AnomalyIgnore{}).Error
 }

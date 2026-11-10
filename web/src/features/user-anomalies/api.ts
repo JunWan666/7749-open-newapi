@@ -108,3 +108,32 @@ export async function updateAnomalyNote(
   })
   return res.data
 }
+
+export async function batchUpdateAnomalyStatus(
+  userIds: number[],
+  status: number
+): Promise<{ success: boolean; data?: { updated: number }; message?: string }> {
+  const res = await api.post('/api/user/anomalies/batch-status', {
+    user_ids: userIds,
+    status,
+  })
+  return res.data
+}
+
+export async function batchIgnoreAnomalyUsers(
+  userIds: number[]
+): Promise<{ success: boolean; data?: { updated: number }; message?: string }> {
+  const res = await api.post('/api/user/anomalies/batch-ignore', {
+    user_ids: userIds,
+  })
+  return res.data
+}
+
+export async function batchUnignoreAnomalyUsers(
+  userIds: number[]
+): Promise<{ success: boolean; data?: { updated: number }; message?: string }> {
+  const res = await api.post('/api/user/anomalies/batch-unignore', {
+    user_ids: userIds,
+  })
+  return res.data
+}

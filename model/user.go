@@ -1361,6 +1361,14 @@ func UpdateUserLastLoginInfo(id int, ip string) {
 	}
 }
 
+// BatchUpdateUserStatus updates the status of many users at once (admin bulk action).
+func BatchUpdateUserStatus(ids []int, status int) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	return DB.Model(&User{}).Where("id IN ?", ids).Update("status", status).Error
+}
+
 // UpdateUserStatus updates only the status field, used by the admin inline status switch.
 func UpdateUserStatus(id int, status int) error {
 	return DB.Model(&User{}).Where("id = ?", id).Update("status", status).Error

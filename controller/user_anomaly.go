@@ -266,3 +266,114 @@ func UpdateAnomalyNote(c *gin.Context) {
 		"data":    gin.H{"note": note},
 	})
 }
+
+// sanitizeAnomalyIds filters out admin accounts and the operator himself.
+func sanitizeAnomalyIds(c *gin.Context, ids []int) []int {
+	out := make([]int, 0, len(ids))
+	operatorId := c.GetInt("id")
+	for _, id := range ids {
+		if id <= 0 || id == operatorId {
+			continue
+		}
+		target, err := model.GetUserById(id, false)
+		if err != nil || target.Role >= common.RoleAdminUser {
+			continue
+		}
+		out = append(out, id)
+	}
+	return out
+}
+
+// BatchUpdateAnomalyStatus changes the status of many accounts at once (bulk release / mark suspicious).
+func BatchUpdateAnomalyStatus(c *gin.Context) {
+	var req struct {
+		UserIds []int `json:"user_ids"`
+		Status  int   `json:"status"`
+	}
+	if err := common.DecodeJson(c.Request.Body, &req); err != nil || len(req.UserIds) == 0 {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+	switch req.Status {
+	case common.UserStatusEnabled, common.UserStatusDisabled, common.UserStatusPending, common.UserStatusSuspicious:
+	default:
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+
+	ids := sanitizeAnomalyIds(c, req.UserIds)
+	if len(ids) == 0 {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+	if err := model.BatchUpdateUserStatus(ids, req.Status); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	for _, id := range ids {
+		if err := model.PublishUserAuthCache(id); err != nil {
+			common.SysLog("failed to refresh user auth cache: " + err.Error())
+		}
+	}
+	recordManageAuditFor(c, 0, "user.anomaly_batch_status", map[string]interface{}{
+		"count":  len(ids),
+		"status": req.Status,
+	})
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "",
+		"data":    gin.H{"updated": len(ids)},
+	})
+}
+
+// BatchIgnoreAnomalyUsers adds several accounts to the ignore list.
+func BatchIgnoreAnomalyUsers(c *gin.Context) {
+	var req struct {
+		UserIds []int  `json:"user_ids"`
+		Reason  string `json:"reason"`
+	}
+	if err := common.DecodeJson(c.Request.Body, &req); err != nil || len(req.UserIds) == 0 {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+	ids := sanitizeAnomalyIds(c, req.UserIds)
+	if len(ids) == 0 {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+	if err := model.BatchAddAnomalyIgnore(ids, strings.TrimSpace(req.Reason), common.GetTimestamp()); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	recordManageAuditFor(c, 0, "user.anomaly_batch_ignore", map[string]interface{}{
+		"count": len(ids),
+	})
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "",
+		"data":    gin.H{"updated": len(ids)},
+	})
+}
+
+// BatchUnignoreAnomalyUsers removes several accounts from the ignore list.
+func BatchUnignoreAnomalyUsers(c *gin.Context) {
+	var req struct {
+		UserIds []int `json:"user_ids"`
+	}
+	if err := common.DecodeJson(c.Request.Body, &req); err != nil || len(req.UserIds) == 0 {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+	if err := model.BatchRemoveAnomalyIgnore(req.UserIds); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	recordManageAuditFor(c, 0, "user.anomaly_batch_unignore", map[string]interface{}{
+		"count": len(req.UserIds),
+	})
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "",
+		"data":    gin.H{"updated": len(req.UserIds)},
+	})
+}

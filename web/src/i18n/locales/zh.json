@@ -2480,6 +2480,8 @@
     "Last detected addable models": "上次检测到可加入模型",
     "Last Login": "最后登录",
     "Last Login IP": "最后登录 IP",
+    "Selected N": "已选 {{n}} 项",
+    "Updated N accounts": "已更新 {{n}} 个账号",
     "Handle note": "处理批注",
     "Why was this account handled?": "为什么处理这个账号？",
     "Click to add a note": "点击填写批注",
