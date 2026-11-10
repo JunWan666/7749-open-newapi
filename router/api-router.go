@@ -30,6 +30,8 @@ func SetApiRouter(router *gin.Engine) {
 		apiRouter.GET("/privacy-policy", controller.GetPrivacyPolicy)
 		apiRouter.GET("/about", controller.GetAbout)
 		apiRouter.GET("/group-qrcode", controller.GetGroupQrcode)
+		apiRouter.GET("/notice-config", controller.GetNoticeConfigPublic)
+		apiRouter.GET("/contact-avatar/:file", controller.GetContactAvatar)
 		//apiRouter.GET("/midjourney", controller.GetMidjourney)
 		apiRouter.GET("/home_page_content", controller.GetHomePageContent)
 		apiRouter.GET("/pricing", middleware.HeaderNavModuleAuth("pricing"), controller.GetPricing)
@@ -198,6 +200,14 @@ func SetApiRouter(router *gin.Engine) {
 		apiRouter.GET("/subscription/epay/notify", controller.SubscriptionEpayNotify)
 		apiRouter.GET("/subscription/epay/return", controller.SubscriptionEpayReturn)
 		apiRouter.POST("/subscription/epay/return", anonymousRequestBodyLimit, controller.SubscriptionEpayReturn)
+		// 账号受限提示文案：管理员可编辑
+		noticeConfigRoute := apiRouter.Group("/option/notice-config")
+		noticeConfigRoute.Use(middleware.AdminAuth())
+		{
+			noticeConfigRoute.GET("", controller.GetNoticeConfigAdmin)
+			noticeConfigRoute.PUT("", controller.UpdateNoticeConfig)
+		}
+
 		// 微信群二维码：管理员即可上传/删除（不要求 root）
 		qrcodeRoute := apiRouter.Group("/option/group-qrcode")
 		qrcodeRoute.Use(middleware.AdminAuth())

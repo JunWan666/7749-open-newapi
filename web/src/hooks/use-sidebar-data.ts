@@ -28,6 +28,7 @@ import {
   MessageSquare,
   QrCode,
   Radio,
+  MessageSquareText,
   ServerCog,
   ShieldAlert,
   Settings,
@@ -145,6 +146,11 @@ export function useSidebarData(): SidebarData {
             title: t('Anomaly Users'),
             url: '/user-anomalies',
             icon: ShieldAlert,
+          },
+          {
+            title: t('Notice Copy'),
+            url: '/notice-config',
+            icon: MessageSquareText,
           },
           {
             title: t('WeChat Group QR Code'),
