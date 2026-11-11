@@ -107,16 +107,16 @@ export function ModelsSection(props: ModelsSectionProps) {
       return (
         <span
           className={cn(
-            'flex size-7 shrink-0 items-center justify-center rounded-full border',
+            'flex size-6 shrink-0 items-center justify-center rounded-full border',
             MEDAL_COLORS[index]
           )}
         >
-          <Crown className='size-3.5' />
+          <Crown className='size-3' />
         </span>
       )
     }
     return (
-      <span className='text-muted-foreground flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold'>
+      <span className='text-muted-foreground flex size-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold'>
         {index + 1}
       </span>
     )
@@ -124,67 +124,50 @@ export function ModelsSection(props: ModelsSectionProps) {
 
   function renderRow(row: ModelRanking, index: number): ReactNode {
     const metric = sortKey === 'calls' ? row.calls : row.total_tokens
-    const barPct = Math.max(3, (metric / maxMetric) * 100)
-    const secondary =
-      sortKey === 'calls'
-        ? `${formatTokens(row.total_tokens)} token`
-        : `${row.calls.toLocaleString()} ${t('calls')}`
+    const barPct = Math.max(2, (metric / maxMetric) * 100)
 
     return (
-      <div
-        key={row.model_name}
-        className='hover:bg-muted/40 flex items-center gap-3 px-3 py-3 transition-colors sm:px-4'
-      >
-        {rankBadge(index)}
-
-        <div className='min-w-0 flex-1'>
-          <div className='flex items-center justify-between gap-2'>
-            <div className='flex min-w-0 items-baseline gap-2'>
-              <ModelLink
-                modelName={row.model_name}
-                className='truncate font-mono text-sm font-medium'
-              >
-                {row.model_name}
-              </ModelLink>
-              <VendorLink
-                vendor={row.vendor}
-                className='text-muted-foreground/80 hidden truncate text-[11px] italic sm:inline'
-              >
-                {row.vendor.toLowerCase()}
-              </VendorLink>
-            </div>
-            <div className='flex shrink-0 items-baseline gap-1'>
-              <span className='text-foreground font-mono text-lg font-semibold tabular-nums'>
-                {sortKey === 'calls'
-                  ? row.calls.toLocaleString()
-                  : formatTokens(row.total_tokens)}
-              </span>
-              <span className='text-muted-foreground text-[11px]'>
-                {sortKey === 'calls' ? t('calls') : t('tokens')}
-              </span>
-            </div>
-          </div>
-          <div className='mt-1.5 flex items-center gap-2'>
-            <div
-              className='bg-muted h-1.5 flex-1 overflow-hidden rounded-full'
-              title={`${t('Share of the top model')}: ${Math.round((metric / maxMetric) * 100)}%`}
+      <tr key={row.model_name} className='hover:bg-muted/30'>
+        <td className='px-3 py-2'>{rankBadge(index)}</td>
+        <td className='max-w-[320px] px-3 py-2'>
+          <div className='flex min-w-0 flex-col'>
+            <ModelLink
+              modelName={row.model_name}
+              className='truncate font-mono text-xs font-medium'
             >
-              <div
-                className='bg-primary/70 h-full rounded-full transition-[width] duration-500'
-                style={{ width: `${barPct}%` }}
-              />
-            </div>
-            <GrowthText
-              value={row.growth_pct}
-              className='shrink-0 text-[11px]'
+              {row.model_name}
+            </ModelLink>
+            <VendorLink
+              vendor={row.vendor}
+              className='text-muted-foreground/80 truncate text-[10px] italic'
+            >
+              {row.vendor.toLowerCase()}
+            </VendorLink>
+          </div>
+        </td>
+        <td className='px-3 py-2'>
+          <div
+            className='bg-muted h-1.5 w-[110px] overflow-hidden rounded-full'
+            title={`${t('Share of the top model')}: ${Math.round((metric / maxMetric) * 100)}%`}
+          >
+            <div
+              className='bg-primary/70 h-full rounded-full transition-[width] duration-500'
+              style={{ width: `${barPct}%` }}
             />
           </div>
-        </div>
-
-        <span className='text-muted-foreground w-24 shrink-0 text-right text-[11px] tabular-nums'>
-          {secondary}
-        </span>
-      </div>
+        </td>
+        <td className='px-3 py-2 text-right'>
+          <span className='text-foreground font-mono text-sm font-semibold tabular-nums'>
+            {row.calls.toLocaleString()}
+          </span>
+        </td>
+        <td className='text-muted-foreground px-3 py-2 text-right tabular-nums'>
+          {formatTokens(row.total_tokens)}
+        </td>
+        <td className='px-3 py-2 text-right'>
+          <GrowthText value={row.growth_pct} className='text-[11px]' />
+        </td>
+      </tr>
     )
   }
 
@@ -206,8 +189,34 @@ export function ModelsSection(props: ModelsSectionProps) {
       )
     }
     return (
-      <div className='bg-card divide-y overflow-hidden rounded-xl border shadow-sm'>
-        {sortedRows.map((row, index) => renderRow(row, index))}
+      <div className='bg-card overflow-hidden rounded-xl border shadow-sm'>
+        <div className='overflow-x-auto'>
+          <table className='w-full min-w-[680px] text-xs'>
+            <thead>
+              <tr className='bg-muted/40 text-muted-foreground border-b text-[11px]'>
+                <th className='w-14 px-3 py-2 text-left font-medium'>
+                  {t('Rank')}
+                </th>
+                <th className='px-3 py-2 text-left font-medium'>{t('Model')}</th>
+                <th className='px-3 py-2 text-left font-medium'>
+                  {sortKey === 'calls' ? t('Calls share') : t('Usage share')}
+                </th>
+                <th className='px-3 py-2 text-right font-medium'>
+                  {t('Calls')}
+                </th>
+                <th className='px-3 py-2 text-right font-medium'>
+                  {t('Tokens')}
+                </th>
+                <th className='px-3 py-2 text-right font-medium'>
+                  {t('Growth')}
+                </th>
+              </tr>
+            </thead>
+            <tbody className='divide-y'>
+              {sortedRows.map((row, index) => renderRow(row, index))}
+            </tbody>
+          </table>
+        </div>
       </div>
     )
   }
