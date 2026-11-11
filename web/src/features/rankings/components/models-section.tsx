@@ -80,6 +80,11 @@ export function ModelsSection(props: ModelsSectionProps) {
     [sortedRows]
   )
 
+  const totalTokens = useMemo(
+    () => sortedRows.reduce((sum, r) => sum + r.total_tokens, 0),
+    [sortedRows]
+  )
+
   const maxMetric = useMemo(() => {
     if (sortedRows.length === 0) {
       return 1
@@ -160,7 +165,10 @@ export function ModelsSection(props: ModelsSectionProps) {
             </div>
           </div>
           <div className='mt-1.5 flex items-center gap-2'>
-            <div className='bg-muted h-1.5 flex-1 overflow-hidden rounded-full'>
+            <div
+              className='bg-muted h-1.5 flex-1 overflow-hidden rounded-full'
+              title={`${t('Share of the top model')}: ${Math.round((metric / maxMetric) * 100)}%`}
+            >
               <div
                 className='bg-primary/70 h-full rounded-full transition-[width] duration-500'
                 style={{ width: `${barPct}%` }}
@@ -241,6 +249,15 @@ export function ModelsSection(props: ModelsSectionProps) {
         </div>
       </div>
 
+      <div className='grid gap-3 sm:grid-cols-3'>
+        <StatCard
+          label={t('Listed models')}
+          value={sortedRows.length.toLocaleString()}
+        />
+        <StatCard label={t('Total calls')} value={totalCalls.toLocaleString()} />
+        <StatCard label={t('Total tokens')} value={formatTokens(totalTokens)} />
+      </div>
+
       <div className='flex flex-wrap items-center justify-between gap-3'>
         <div className='bg-muted/60 inline-flex rounded-lg p-0.5'>
           {SORT_OPTIONS.map((option) => (
@@ -259,12 +276,25 @@ export function ModelsSection(props: ModelsSectionProps) {
             </button>
           ))}
         </div>
-        <span className='text-muted-foreground text-[11px] tabular-nums'>
-          {t('Total calls')}: {totalCalls.toLocaleString()}
+        <span className='text-muted-foreground text-[11px]'>
+          {sortKey === 'calls'
+            ? t('Ranked by call count')
+            : t('Ranked by token usage')}
         </span>
       </div>
 
       {renderBody()}
     </section>
+  )
+}
+
+function StatCard(props: { label: string; value: string }) {
+  return (
+    <div className='bg-card rounded-xl border px-4 py-3 shadow-sm'>
+      <div className='text-muted-foreground text-[11px]'>{props.label}</div>
+      <div className='mt-0.5 text-lg font-semibold tabular-nums'>
+        {props.value}
+      </div>
+    </div>
   )
 }
