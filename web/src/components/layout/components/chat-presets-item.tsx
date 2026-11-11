@@ -234,18 +234,36 @@ export function ChatPresetsItem({ item }: { item: NavChatPresets }) {
       <>
         {visiblePresets.map((preset) => (
           <SidebarMenuItem key={preset.id}>
-            <SidebarMenuButton
-              tooltip={preset.name}
-              onClick={() => void handleOpenExternal(preset)}
-            >
-              {item.icon && <item.icon className='shrink-0' />}
-              <span className='min-w-0 flex-1 truncate'>{preset.name}</span>
-              {loadingPresetId === preset.id ? (
-                <Loader2 className='ms-auto size-3.5 shrink-0 animate-spin' />
-              ) : (
-                <ExternalLink className='ms-auto size-3 shrink-0 opacity-50' />
-              )}
-            </SidebarMenuButton>
+            {preset.type === 'web' ? (
+              <SidebarMenuButton
+                isActive={normalizedHref === `/chat/${preset.id}`}
+                tooltip={preset.name}
+                render={
+                  <Link
+                    to='/chat/$chatId'
+                    params={{ chatId: preset.id }}
+                    preload={isMobile ? false : undefined}
+                    onClick={() => setOpenMobile(false)}
+                  />
+                }
+              >
+                {item.icon && <item.icon className='shrink-0' />}
+                <span className='min-w-0 flex-1 truncate'>{preset.name}</span>
+              </SidebarMenuButton>
+            ) : (
+              <SidebarMenuButton
+                tooltip={preset.name}
+                onClick={() => void handleOpenExternal(preset)}
+              >
+                {item.icon && <item.icon className='shrink-0' />}
+                <span className='min-w-0 flex-1 truncate'>{preset.name}</span>
+                {loadingPresetId === preset.id ? (
+                  <Loader2 className='ms-auto size-3.5 shrink-0 animate-spin' />
+                ) : (
+                  <ExternalLink className='ms-auto size-3 shrink-0 opacity-50' />
+                )}
+              </SidebarMenuButton>
+            )}
           </SidebarMenuItem>
         ))}
       </>

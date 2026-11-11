@@ -3,13 +3,20 @@ import { api } from '@/lib/api'
 export type SidebarLinkData = {
   name: string
   url: string
+  /** 站内内嵌显示（iframe）；关闭则新窗口打开。 */
+  embed: boolean
+}
+
+export type SidebarGroupData = {
+  title: string
+  show_playground: boolean
+  show_chat_presets: boolean
+  flat_chat_presets: boolean
+  links: SidebarLinkData[]
 }
 
 export type SidebarConfigData = {
-  group_title: string
-  show_playground: boolean
-  flat_chat_presets: boolean
-  links: SidebarLinkData[]
+  groups: SidebarGroupData[]
 }
 
 export async function getSidebarConfig(): Promise<{

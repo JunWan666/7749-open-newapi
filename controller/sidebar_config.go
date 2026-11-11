@@ -10,63 +10,116 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// SidebarLink is one admin-defined shortcut shown in the sidebar group.
+// SidebarLink is one admin-defined shortcut inside a sidebar group.
 type SidebarLink struct {
 	Name string `json:"name"`
 	URL  string `json:"url"`
+	// Embed shows the page inside the console (iframe) instead of a new tab.
+	Embed bool `json:"embed"`
 }
 
-// SidebarConfig drives the "Chat & Fun" sidebar group; editable from the admin console.
-type SidebarConfig struct {
-	// GroupTitle replaces the built-in group name (default: 聊天和娱乐).
-	GroupTitle string `json:"group_title"`
-	// ShowPlayground keeps the built-in /playground entry visible.
+// SidebarGroup is one group of the console sidebar; editable from the admin console.
+type SidebarGroup struct {
+	Title string `json:"title"`
+	// ShowPlayground keeps the built-in /playground entry in this group.
 	ShowPlayground bool `json:"show_playground"`
-	// FlatChatPresets lifts chat presets (e.g. AI 生图) out of the collapsible
-	// "Chat" wrapper so they render as top-level entries in the group.
+	// ShowChatPresets includes the built-in chat presets (e.g. AI 生图).
+	ShowChatPresets bool `json:"show_chat_presets"`
+	// FlatChatPresets lifts chat presets out of the collapsible "Chat" wrapper
+	// so they render as top-level entries in this group.
 	FlatChatPresets bool `json:"flat_chat_presets"`
-	// Links are extra shortcuts appended at the end of the group.
+	// Links are admin-defined shortcuts appended to the group.
 	Links []SidebarLink `json:"links"`
+}
+
+// SidebarConfig drives the custom sidebar groups; editable from the admin console.
+type SidebarConfig struct {
+	Groups []SidebarGroup `json:"groups"`
+}
+
+// rawSidebarConfig also understands the v1 single-group shape so existing
+// deployments migrate without a manual DB edit.
+type rawSidebarConfig struct {
+	Groups          []SidebarGroup `json:"groups"`
+	GroupTitle      string         `json:"group_title"`
+	ShowPlayground  bool           `json:"show_playground"`
+	FlatChatPresets bool           `json:"flat_chat_presets"`
+	Links           []SidebarLink  `json:"links"`
 }
 
 const sidebarConfigKey = "fork_setting.sidebar_config"
 
 const sidebarMaxLinks = 20
 
+const sidebarMaxGroups = 4
+
 func defaultSidebarConfig() SidebarConfig {
 	return SidebarConfig{
-		GroupTitle:      "聊天和娱乐",
-		ShowPlayground:  false,
-		FlatChatPresets: true,
-		Links: []SidebarLink{
-			{Name: "几猫 3A 大作", URL: "https://cat.774966.xyz/jm/"},
-			{Name: "飞车 3D", URL: "https://cat.774966.xyz/qqfc/"},
-			{Name: "运输船", URL: "https://cat.774966.xyz/cf/"},
-			{Name: "鹈鹕骑单车", URL: "https://cat.774966.xyz/bike/"},
+		Groups: []SidebarGroup{
+			{
+				Title:           "生图和聊天",
+				ShowPlayground:  false,
+				ShowChatPresets: true,
+				FlatChatPresets: true,
+				Links:           []SidebarLink{},
+			},
+			{
+				Title:           "娱乐",
+				ShowPlayground:  false,
+				ShowChatPresets: false,
+				FlatChatPresets: false,
+				Links: []SidebarLink{
+					{Name: "几猫 3A 大作", URL: "https://cat.774966.xyz/jm/", Embed: true},
+					{Name: "飞车 3D", URL: "https://cat.774966.xyz/qqfc/", Embed: true},
+					{Name: "运输船", URL: "https://cat.774966.xyz/cf/", Embed: true},
+					{Name: "鹈鹕骑单车", URL: "https://cat.774966.xyz/bike/", Embed: true},
+				},
+			},
 		},
 	}
 }
 
 func loadSidebarConfig() SidebarConfig {
-	cfg := defaultSidebarConfig()
+	def := defaultSidebarConfig()
 	options, err := model.AllOption()
 	if err != nil {
-		return cfg
+		return def
 	}
 	for _, opt := range options {
 		if opt.Key != sidebarConfigKey || strings.TrimSpace(opt.Value) == "" {
 			continue
 		}
-		var parsed SidebarConfig
+		var parsed rawSidebarConfig
 		if err := common.UnmarshalJsonStr(opt.Value, &parsed); err != nil {
-			return cfg
+			return def
 		}
-		if strings.TrimSpace(parsed.GroupTitle) == "" {
-			parsed.GroupTitle = cfg.GroupTitle
+		if len(parsed.Groups) > 0 {
+			return normalizeSidebarConfig(SidebarConfig{Groups: parsed.Groups})
 		}
-		return parsed
+		// v1 → v2: split the single "聊天和娱乐" group into chat + shortcuts.
+		legacy := SidebarGroup{
+			Title:           strings.TrimSpace(parsed.GroupTitle),
+			ShowPlayground:  parsed.ShowPlayground,
+			ShowChatPresets: true,
+			FlatChatPresets: parsed.FlatChatPresets,
+			Links:           []SidebarLink{},
+		}
+		if legacy.Title == "" {
+			legacy.Title = "聊天和娱乐"
+		}
+		if len(parsed.Links) == 0 {
+			return normalizeSidebarConfig(SidebarConfig{Groups: []SidebarGroup{legacy}})
+		}
+		fun := SidebarGroup{
+			Title:           "娱乐",
+			ShowPlayground:  false,
+			ShowChatPresets: false,
+			FlatChatPresets: false,
+			Links:           parsed.Links,
+		}
+		return normalizeSidebarConfig(SidebarConfig{Groups: []SidebarGroup{legacy, fun}})
 	}
-	return cfg
+	return def
 }
 
 func normalizeSidebarLinks(links []SidebarLink) []SidebarLink {
@@ -80,12 +133,32 @@ func normalizeSidebarLinks(links []SidebarLink) []SidebarLink {
 		if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
 			continue
 		}
-		cleaned = append(cleaned, SidebarLink{Name: name, URL: url})
+		cleaned = append(cleaned, SidebarLink{Name: name, URL: url, Embed: link.Embed})
 		if len(cleaned) >= sidebarMaxLinks {
 			break
 		}
 	}
 	return cleaned
+}
+
+func normalizeSidebarConfig(cfg SidebarConfig) SidebarConfig {
+	groups := make([]SidebarGroup, 0, len(cfg.Groups))
+	for _, group := range cfg.Groups {
+		title := strings.TrimSpace(group.Title)
+		if title == "" {
+			continue
+		}
+		group.Title = title
+		group.Links = normalizeSidebarLinks(group.Links)
+		groups = append(groups, group)
+		if len(groups) >= sidebarMaxGroups {
+			break
+		}
+	}
+	if len(groups) == 0 {
+		return defaultSidebarConfig()
+	}
+	return SidebarConfig{Groups: groups}
 }
 
 // GetSidebarConfigPublic exposes the sidebar layout so the client can render it.
@@ -105,13 +178,9 @@ func UpdateSidebarConfig(c *gin.Context) {
 		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
 		return
 	}
-	req.GroupTitle = strings.TrimSpace(req.GroupTitle)
-	if req.GroupTitle == "" {
-		req.GroupTitle = defaultSidebarConfig().GroupTitle
-	}
-	req.Links = normalizeSidebarLinks(req.Links)
+	cfg := normalizeSidebarConfig(req)
 
-	raw, err := common.Marshal(req)
+	raw, err := common.Marshal(cfg)
 	if err != nil {
 		common.ApiError(c, err)
 		return
@@ -121,7 +190,7 @@ func UpdateSidebarConfig(c *gin.Context) {
 		return
 	}
 	recordManageAuditFor(c, 0, "site.sidebar_config", map[string]interface{}{
-		"links": len(req.Links),
+		"groups": len(cfg.Groups),
 	})
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": ""})
 }

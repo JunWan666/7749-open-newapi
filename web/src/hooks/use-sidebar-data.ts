@@ -41,7 +41,11 @@ import {
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import type { NavItem, SidebarData } from '@/components/layout/types'
+import type {
+  NavGroup,
+  NavItem,
+  SidebarData,
+} from '@/components/layout/types'
 import { useSidebarForkConfig } from '@/hooks/use-sidebar-fork-config'
 import { ROLE } from '@/lib/roles'
 
@@ -55,38 +59,47 @@ export function useSidebarData(): SidebarData {
   const { t } = useTranslation()
   const forkSidebar = useSidebarForkConfig()
 
-  // "Chat & Fun" group: built-in chat presets (AI 生图 etc.) stay first so
-  // their {key} auto-fill keeps working, then admin-defined shortcuts.
-  const chatItems: NavItem[] = []
-  if (forkSidebar.show_playground) {
-    chatItems.push({
-      title: t('Playground'),
-      url: '/playground',
-      icon: FlaskConical,
+  // Admin-defined groups (chat presets like AI 生图 keep their {key} auto-fill).
+  const forkGroups: NavGroup[] = []
+  forkSidebar.groups.forEach((group, index) => {
+    const items: NavItem[] = []
+    if (group.show_playground) {
+      items.push({
+        title: t('Playground'),
+        url: '/playground',
+        icon: FlaskConical,
+      })
+    }
+    if (group.show_chat_presets) {
+      items.push({
+        title: t('Chat'),
+        icon: MessageSquare,
+        type: 'chat-presets',
+        flat: group.flat_chat_presets,
+      })
+    }
+    for (const link of group.links) {
+      items.push({
+        title: link.name,
+        url: link.url,
+        icon: Gamepad2,
+        external: !link.embed,
+        embed: Boolean(link.embed),
+      })
+    }
+    if (items.length === 0) {
+      return
+    }
+    forkGroups.push({
+      id: `fork-group-${index}`,
+      title: group.title,
+      items,
     })
-  }
-  chatItems.push({
-    title: t('Chat'),
-    icon: MessageSquare,
-    type: 'chat-presets',
-    flat: forkSidebar.flat_chat_presets,
   })
-  for (const link of forkSidebar.links) {
-    chatItems.push({
-      title: link.name,
-      url: link.url,
-      icon: Gamepad2,
-      external: true,
-    })
-  }
 
   return {
     navGroups: [
-      {
-        id: 'chat',
-        title: forkSidebar.group_title || t('Chat'),
-        items: chatItems,
-      },
+      ...forkGroups,
       {
         id: 'general',
         title: t('General'),

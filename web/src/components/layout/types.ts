@@ -43,6 +43,8 @@ export type NavLink = BaseNavItem & {
   url: LinkProps['to'] | (string & {})
   /** When true the URL is an absolute third-party address opened in a new tab. */
   external?: boolean
+  /** When true the URL opens inside the console (iframe) instead of a new tab. */
+  embed?: boolean
   items?: never
   type?: never
 }

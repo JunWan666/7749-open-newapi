@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { Link, useLocation } from '@tanstack/react-router'
-import { ChevronRight, ExternalLink } from 'lucide-react'
+import { ChevronRight, ExternalLink, MonitorSmartphone } from 'lucide-react'
 import { type ReactNode, useState, useEffect } from 'react'
 
 import { Badge } from '@/components/ui/badge'
@@ -123,14 +123,23 @@ function NavBadge({ children }: { children: ReactNode }) {
 function SidebarMenuLink({ item, href }: { item: NavLink; href: string }) {
   const { isMobile, setOpenMobile } = useSidebar()
   const target = String(item.url)
-  const isExternal = item.external === true || /^https?:\/\//.test(target)
+  const isEmbed = item.embed === true
+  const isExternal =
+    !isEmbed && (item.external === true || /^https?:\/\//.test(target))
   return (
     <SidebarMenuItem>
       <SidebarMenuButton
         isActive={checkIsActive(href, item)}
         tooltip={item.title}
         render={
-          isExternal ? (
+          isEmbed ? (
+            <Link
+              to='/embed'
+              search={{ url: target, title: item.title }}
+              preload={isMobile ? false : undefined}
+              onClick={() => setOpenMobile(false)}
+            />
+          ) : isExternal ? (
             <a
               href={target}
               target='_blank'
@@ -148,7 +157,9 @@ function SidebarMenuLink({ item, href }: { item: NavLink; href: string }) {
       >
         {item.icon && <item.icon className='shrink-0' />}
         <span className='min-w-0 flex-1 truncate'>{item.title}</span>
-        {isExternal ? (
+        {isEmbed ? (
+          <MonitorSmartphone className='ms-auto size-3 shrink-0 opacity-50' />
+        ) : isExternal ? (
           <ExternalLink className='ms-auto size-3 shrink-0 opacity-50' />
         ) : (
           item.badge && <NavBadge>{item.badge}</NavBadge>
