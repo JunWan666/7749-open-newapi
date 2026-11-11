@@ -25,12 +25,7 @@ import { PageTransition } from '@/components/page-transition'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
-import {
-  MarketShareSection,
-  ModelsSection,
-  PulseSection,
-  RankingsHero,
-} from './components'
+import { ModelsSection, RankingsHero } from './components'
 import { AboutSection } from './components/about-section'
 import { ModelHealthSection } from './components/model-health-section'
 import { TopUsersSection } from './components/top-users-section'
@@ -40,7 +35,7 @@ import type { RankingPeriod } from './types'
 
 type RankingsTab = 'platform' | 'users' | 'health' | 'about'
 
-const VALID_PERIODS: RankingPeriod[] = ['today', 'week', 'month', 'year']
+const VALID_PERIODS: RankingPeriod[] = ['today', 'week', 'month']
 
 export function Rankings() {
   const { t } = useTranslation()
@@ -51,7 +46,7 @@ export function Rankings() {
     search.period as RankingPeriod
   )
     ? (search.period as RankingPeriod)
-    : 'week'
+    : 'today'
 
   const [tab, setTab] = useState<RankingsTab>('platform')
 
@@ -77,24 +72,11 @@ export function Rankings() {
       return <RankingsError message={message} />
     }
     return (
-      <>
-        <ModelsSection
-          history={snapshot.models_history}
-          rows={snapshot.models}
-          period={period}
-        />
-
-        <MarketShareSection
-          history={snapshot.vendor_share_history}
-          rows={snapshot.vendors}
-          period={period}
-        />
-
-        <PulseSection
-          movers={snapshot.top_movers}
-          droppers={snapshot.top_droppers}
-        />
-      </>
+      <ModelsSection
+        history={snapshot.models_history}
+        rows={snapshot.models}
+        period={period}
+      />
     )
   }
 
@@ -140,6 +122,8 @@ export function Rankings() {
               <RankingsPeriodTabs
                 period={period}
                 onPeriodChange={handlePeriodChange}
+                startTs={snapshot?.start_ts}
+                endTs={snapshot?.end_ts}
               />
               <div className='space-y-8'>{platformContent}</div>
             </TabsContent>

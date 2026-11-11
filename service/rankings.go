@@ -21,6 +21,11 @@ const (
 )
 
 type RankingsResponse struct {
+	// Window covered by this snapshot (unix seconds), so the UI can show
+	// the exact "from ~ to" range next to the period switcher.
+	StartTs int64 `json:"start_ts"`
+	EndTs   int64 `json:"end_ts"`
+
 	Models             []RankedModel      `json:"models"`
 	Vendors            []RankedVendor     `json:"vendors"`
 	TopMovers          []RankingMover     `json:"top_movers"`
@@ -37,8 +42,10 @@ type RankedModel struct {
 	VendorIcon   string  `json:"vendor_icon,omitempty"`
 	Category     string  `json:"category"`
 	TotalTokens  int64   `json:"total_tokens"`
-	Share        float64 `json:"share"`
-	GrowthPct    float64 `json:"growth_pct"`
+	// Calls is the number of requests served by this model in the window.
+	Calls     int64   `json:"calls"`
+	Share     float64 `json:"share"`
+	GrowthPct float64 `json:"growth_pct"`
 }
 
 type RankedVendor struct {
@@ -210,6 +217,8 @@ func buildRankingsSnapshot(config rankingPeriodConfig, now time.Time) (*Rankings
 	movers, droppers := buildRankingMovers(rankedModels)
 
 	return &RankingsResponse{
+		StartTs:            startTime,
+		EndTs:              endTime,
 		Models:             limitRankedModels(rankedModels, rankingLeaderboardLimit),
 		Vendors:            vendors,
 		TopMovers:          movers,
@@ -221,6 +230,12 @@ func buildRankingsSnapshot(config rankingPeriodConfig, now time.Time) (*Rankings
 
 func rankingTimeRange(config rankingPeriodConfig, now time.Time) (int64, int64) {
 	endTime := now.Unix()
+	// "近 1 天" follows the same rule as the top-users ranking: today from
+	// local midnight, so both tabs show an identical window.
+	if config.id == "today" {
+		startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+		return startOfDay.Unix(), endTime
+	}
 	if config.duration <= 0 {
 		return 0, endTime
 	}
@@ -229,6 +244,10 @@ func rankingTimeRange(config rankingPeriodConfig, now time.Time) (int64, int64) 
 
 func previousRankingTimeRange(config rankingPeriodConfig, currentStart int64) (int64, int64) {
 	previousEnd := currentStart - 1
+	if config.id == "today" {
+		previousStart := time.Unix(currentStart, 0).AddDate(0, 0, -1).Unix()
+		return previousStart, previousEnd
+	}
 	previousStart := time.Unix(currentStart, 0).Add(-config.duration).Unix()
 	return previousStart, previousEnd
 }
@@ -281,6 +300,7 @@ func buildRankedModels(totals []model.RankingQuotaTotal, totalTokens int64, prev
 			VendorIcon:   modelMeta.vendorIcon,
 			Category:     "all",
 			TotalTokens:  item.TotalTokens,
+			Calls:        item.Calls,
 			Share:        rankingShare(item.TotalTokens, totalTokens),
 			GrowthPct:    growth,
 		})

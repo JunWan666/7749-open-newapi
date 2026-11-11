@@ -85,7 +85,8 @@ const MEDAL_COUNT = MEDAL_COLORS.length
 
 export function TopUsersSection() {
   const { t } = useTranslation()
-  const [days, setDays] = useState<number>(7)
+  // Default to 近 1 天, matching the platform ranking tab.
+  const [days, setDays] = useState<number>(1)
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['rank-api', 'top-users', days],

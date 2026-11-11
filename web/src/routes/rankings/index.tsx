@@ -24,10 +24,7 @@ import { getFreshModuleAccess } from '@/lib/nav-modules'
 import { useAuthStore } from '@/stores/auth-store'
 
 const rankingsSearchSchema = z.object({
-  period: z
-    .enum(['today', 'week', 'month', 'year'])
-    .optional()
-    .catch(undefined),
+  period: z.enum(['today', 'week', 'month']).optional().catch(undefined),
 })
 
 export const Route = createFileRoute('/rankings/')({

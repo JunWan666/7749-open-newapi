@@ -22,7 +22,7 @@ For commercial licensing, please contact support@quantumnous.com
 //
 // Shape of the real data shown on the /rankings page.
 
-export type RankingPeriod = 'today' | 'week' | 'month' | 'year'
+export type RankingPeriod = 'today' | 'week' | 'month'
 
 export type RankingCategoryId =
   | 'all'
@@ -48,6 +48,8 @@ export type ModelRanking = {
   category: RankingCategoryId
   /** Total tokens routed through this model in the period. */
   total_tokens: number
+  /** Number of requests routed to this model in the period. */
+  calls: number
   /** Share of all tokens served (0..1). */
   share: number
   /** Period-over-period change in token volume (%). */
@@ -124,6 +126,9 @@ export type VendorShareSeries = {
 }
 
 export type RankingsSnapshot = {
+  /** Window covered by this snapshot (unix seconds). */
+  start_ts: number
+  end_ts: number
   // Overall (all categories) ------------------------------------------------
   models: ModelRanking[]
   vendors: VendorRanking[]

@@ -16,17 +16,20 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { CalendarRange } from 'lucide-react'
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import dayjs from '@/lib/dayjs'
 import { cn } from '@/lib/utils'
 
 import type { RankingPeriod } from '../types'
 
-const PERIODS: { id: RankingPeriod; labelKey: string }[] = [
-  { id: 'today', labelKey: 'Today' },
-  { id: 'week', labelKey: 'Week' },
-  { id: 'month', labelKey: 'Month' },
-  { id: 'year', labelKey: 'Year' },
+/** Same wording/labels as the Top Users tab: 近 1 天 / 近 7 天 / 近 30 天. */
+const PERIODS: { id: RankingPeriod; days: number }[] = [
+  { id: 'today', days: 1 },
+  { id: 'week', days: 7 },
+  { id: 'month', days: 30 },
 ]
 
 type RankingsHeroProps = {
@@ -47,41 +50,62 @@ type RankingsHeroProps = {
 export function RankingsPeriodTabs(props: {
   period: RankingPeriod
   onPeriodChange: (period: RankingPeriod) => void
+  /** Window start/end (unix seconds) reported by the API. */
+  startTs?: number
+  endTs?: number
 }) {
   const { t } = useTranslation()
+
+  // Exact window shown as small print, mirroring the Top Users tab so both
+  // tabs always explain what "近 N 天" actually covers.
+  const rangeLabel = useMemo(() => {
+    if (!props.startTs || !props.endTs) {
+      return ''
+    }
+    return `${dayjs.unix(props.startTs).format('MM-DD HH:mm')} ~ ${dayjs.unix(props.endTs).format('MM-DD HH:mm')}`
+  }, [props.startTs, props.endTs])
+
   return (
-    <div
-      role='tablist'
-      aria-label={t('Period')}
-      className='border-border/60 flex items-center border-b'
-    >
-      {PERIODS.map((p) => {
-        const isActive = props.period === p.id
-        return (
-          <button
-            key={p.id}
-            role='tab'
-            type='button'
-            aria-selected={isActive}
-            onClick={() => props.onPeriodChange(p.id)}
-            className={cn(
-              'focus-visible:ring-ring/40 relative -mb-px rounded-sm px-3 py-2 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none',
-              isActive
-                ? 'text-foreground'
-                : 'text-muted-foreground hover:text-foreground'
-            )}
-          >
-            {t(p.labelKey)}
-            <span
-              aria-hidden
+    <div className='border-border/60 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b'>
+      <div
+        role='tablist'
+        aria-label={t('Period')}
+        className='flex items-center'
+      >
+        {PERIODS.map((p) => {
+          const isActive = props.period === p.id
+          return (
+            <button
+              key={p.id}
+              role='tab'
+              type='button'
+              aria-selected={isActive}
+              onClick={() => props.onPeriodChange(p.id)}
               className={cn(
-                'bg-foreground absolute inset-x-3 -bottom-px h-[2px] rounded-full transition-opacity',
-                isActive ? 'opacity-100' : 'opacity-0'
+                'focus-visible:ring-ring/40 relative -mb-px rounded-sm px-3 py-2 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none',
+                isActive
+                  ? 'text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
               )}
-            />
-          </button>
-        )
-      })}
+            >
+              {t('Last N days', { n: p.days })}
+              <span
+                aria-hidden
+                className={cn(
+                  'bg-foreground absolute inset-x-3 -bottom-px h-[2px] rounded-full transition-opacity',
+                  isActive ? 'opacity-100' : 'opacity-0'
+                )}
+              />
+            </button>
+          )
+        })}
+      </div>
+      {rangeLabel !== '' && (
+        <span className='text-muted-foreground flex items-center gap-1 pb-1.5 text-[11px] tabular-nums'>
+          <CalendarRange className='size-3' />
+          {rangeLabel}
+        </span>
+      )}
     </div>
   )
 }

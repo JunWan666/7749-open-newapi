@@ -29,10 +29,9 @@ import type { ModelHistorySeries, ModelRanking, RankingPeriod } from '../types'
 import { ModelLeaderboard } from './model-leaderboard'
 
 const PERIOD_DESCRIPTIONS: Record<RankingPeriod, string> = {
-  today: 'Hourly token usage by model across the last 24 hours',
-  week: 'Weekly token usage by model across the past few weeks',
-  month: 'Daily token usage by model across the past month',
-  year: 'Weekly token usage by model across the past year',
+  today: 'Hourly token usage by model today',
+  week: 'Daily token usage by model over the last 7 days',
+  month: 'Daily token usage by model over the last 30 days',
 }
 
 const TOOLTIP_MAX_ROWS = 10
@@ -74,6 +73,10 @@ export function ModelsSection(props: ModelsSectionProps) {
 
   const totalTokens = useMemo(
     () => props.rows.reduce((s, r) => s + r.total_tokens, 0),
+    [props.rows]
+  )
+  const totalCalls = useMemo(
+    () => props.rows.reduce((s, r) => s + r.calls, 0),
     [props.rows]
   )
 
@@ -176,12 +179,22 @@ export function ModelsSection(props: ModelsSectionProps) {
             {t(PERIOD_DESCRIPTIONS[props.period])}
           </p>
         </div>
-        <div className='shrink-0 text-right'>
-          <div className='text-foreground font-mono text-2xl font-semibold tabular-nums'>
-            {formatTokens(totalTokens)}
+        <div className='flex shrink-0 items-start gap-5 text-right'>
+          <div>
+            <div className='text-foreground font-mono text-2xl font-semibold tabular-nums'>
+              {formatTokens(totalTokens)}
+            </div>
+            <div className='text-muted-foreground/80 text-[10px] font-medium tracking-widest uppercase'>
+              {t('tokens')}
+            </div>
           </div>
-          <div className='text-muted-foreground/80 text-[10px] font-medium tracking-widest uppercase'>
-            {t('tokens')}
+          <div>
+            <div className='text-foreground font-mono text-2xl font-semibold tabular-nums'>
+              {totalCalls.toLocaleString()}
+            </div>
+            <div className='text-muted-foreground/80 text-[10px] font-medium tracking-widest uppercase'>
+              {t('calls')}
+            </div>
           </div>
         </div>
       </header>

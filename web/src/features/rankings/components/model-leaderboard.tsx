@@ -127,10 +127,21 @@ function ModelList(props: {
                 </>
               )}
             </div>
-            <GrowthText
-              value={row.growth_pct}
-              className={compact ? 'text-[10px]' : 'text-[11px]'}
-            />
+            <div className='mt-0.5 flex items-center justify-end gap-1.5'>
+              <span
+                className={
+                  compact
+                    ? 'text-muted-foreground text-[10px] tabular-nums'
+                    : 'text-muted-foreground text-[11px] tabular-nums'
+                }
+              >
+                {row.calls.toLocaleString()} {t('calls')}
+              </span>
+              <GrowthText
+                value={row.growth_pct}
+                className={compact ? 'text-[10px]' : 'text-[11px]'}
+              />
+            </div>
           </div>
         </li>
       ))}
