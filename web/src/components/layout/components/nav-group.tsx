@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { Link, useLocation } from '@tanstack/react-router'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, ExternalLink } from 'lucide-react'
 import { type ReactNode, useState, useEffect } from 'react'
 
 import { Badge } from '@/components/ui/badge'
@@ -122,22 +122,37 @@ function NavBadge({ children }: { children: ReactNode }) {
  */
 function SidebarMenuLink({ item, href }: { item: NavLink; href: string }) {
   const { isMobile, setOpenMobile } = useSidebar()
+  const target = String(item.url)
+  const isExternal = item.external === true || /^https?:\/\//.test(target)
   return (
     <SidebarMenuItem>
       <SidebarMenuButton
         isActive={checkIsActive(href, item)}
         tooltip={item.title}
         render={
-          <Link
-            to={item.url}
-            preload={isMobile ? false : undefined}
-            onClick={() => setOpenMobile(false)}
-          />
+          isExternal ? (
+            <a
+              href={target}
+              target='_blank'
+              rel='noreferrer'
+              onClick={() => setOpenMobile(false)}
+            />
+          ) : (
+            <Link
+              to={item.url}
+              preload={isMobile ? false : undefined}
+              onClick={() => setOpenMobile(false)}
+            />
+          )
         }
       >
         {item.icon && <item.icon className='shrink-0' />}
         <span className='min-w-0 flex-1 truncate'>{item.title}</span>
-        {item.badge && <NavBadge>{item.badge}</NavBadge>}
+        {isExternal ? (
+          <ExternalLink className='ms-auto size-3 shrink-0 opacity-50' />
+        ) : (
+          item.badge && <NavBadge>{item.badge}</NavBadge>
+        )}
       </SidebarMenuButton>
     </SidebarMenuItem>
   )

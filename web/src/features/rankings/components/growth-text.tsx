@@ -47,9 +47,10 @@ export function GrowthText(props: GrowthTextProps) {
     <span
       className={cn(
         'font-mono tabular-nums',
+        // 中式习惯：上涨用红色、下跌用绿色
         isUp
-          ? 'text-emerald-600 dark:text-emerald-400'
-          : 'text-rose-600 dark:text-rose-400',
+          ? 'text-rose-600 dark:text-rose-400'
+          : 'text-emerald-600 dark:text-emerald-400',
         props.className
       )}
     >

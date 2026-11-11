@@ -228,6 +228,30 @@ export function ChatPresetsItem({ item }: { item: NavChatPresets }) {
     return null
   }
 
+  // Flat mode: every preset becomes a top-level sidebar entry (no "Chat" wrapper)
+  if (item.flat) {
+    return (
+      <>
+        {visiblePresets.map((preset) => (
+          <SidebarMenuItem key={preset.id}>
+            <SidebarMenuButton
+              tooltip={preset.name}
+              onClick={() => void handleOpenExternal(preset)}
+            >
+              {item.icon && <item.icon className='shrink-0' />}
+              <span className='min-w-0 flex-1 truncate'>{preset.name}</span>
+              {loadingPresetId === preset.id ? (
+                <Loader2 className='ms-auto size-3.5 shrink-0 animate-spin' />
+              ) : (
+                <ExternalLink className='ms-auto size-3 shrink-0 opacity-50' />
+              )}
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        ))}
+      </>
+    )
+  }
+
   // Collapsed state on non-mobile - render dropdown menu
   if (state === 'collapsed' && !isMobile) {
     return (

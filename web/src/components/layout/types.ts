@@ -41,6 +41,8 @@ type BaseNavItem = {
  */
 export type NavLink = BaseNavItem & {
   url: LinkProps['to'] | (string & {})
+  /** When true the URL is an absolute third-party address opened in a new tab. */
+  external?: boolean
   items?: never
   type?: never
 }
@@ -59,6 +61,8 @@ export type NavCollapsible = BaseNavItem & {
  */
 export type NavChatPresets = BaseNavItem & {
   type: 'chat-presets'
+  /** Render each preset as a top-level entry instead of a collapsible group. */
+  flat?: boolean
   url?: never
   items?: never
 }

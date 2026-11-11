@@ -31,6 +31,7 @@ func SetApiRouter(router *gin.Engine) {
 		apiRouter.GET("/about", controller.GetAbout)
 		apiRouter.GET("/group-qrcode", controller.GetGroupQrcode)
 		apiRouter.GET("/notice-config", controller.GetNoticeConfigPublic)
+		apiRouter.GET("/sidebar-config", controller.GetSidebarConfigPublic)
 		apiRouter.GET("/contact-avatar/:file", controller.GetContactAvatar)
 		//apiRouter.GET("/midjourney", controller.GetMidjourney)
 		apiRouter.GET("/home_page_content", controller.GetHomePageContent)
@@ -206,6 +207,14 @@ func SetApiRouter(router *gin.Engine) {
 		{
 			noticeConfigRoute.GET("", controller.GetNoticeConfigAdmin)
 			noticeConfigRoute.PUT("", controller.UpdateNoticeConfig)
+		}
+
+		// 侧边栏菜单配置：管理员可编辑
+		sidebarConfigRoute := apiRouter.Group("/option/sidebar-config")
+		sidebarConfigRoute.Use(middleware.AdminAuth())
+		{
+			sidebarConfigRoute.GET("", controller.GetSidebarConfigAdmin)
+			sidebarConfigRoute.PUT("", controller.UpdateSidebarConfig)
 		}
 
 		// 微信群二维码：管理员即可上传/删除（不要求 root）

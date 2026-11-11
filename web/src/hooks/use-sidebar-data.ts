@@ -22,9 +22,11 @@ import {
   CreditCard,
   FileText,
   FlaskConical,
+  Gamepad2,
   Key,
   LayoutDashboard,
   ListTodo,
+  ListTree,
   MessageSquare,
   QrCode,
   Radio,
@@ -39,7 +41,8 @@ import {
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import type { SidebarData } from '@/components/layout/types'
+import type { NavItem, SidebarData } from '@/components/layout/types'
+import { useSidebarForkConfig } from '@/hooks/use-sidebar-fork-config'
 import { ROLE } from '@/lib/roles'
 
 /**
@@ -50,24 +53,39 @@ import { ROLE } from '@/lib/roles'
  */
 export function useSidebarData(): SidebarData {
   const { t } = useTranslation()
+  const forkSidebar = useSidebarForkConfig()
+
+  // "Chat & Fun" group: built-in chat presets (AI 生图 etc.) stay first so
+  // their {key} auto-fill keeps working, then admin-defined shortcuts.
+  const chatItems: NavItem[] = []
+  if (forkSidebar.show_playground) {
+    chatItems.push({
+      title: t('Playground'),
+      url: '/playground',
+      icon: FlaskConical,
+    })
+  }
+  chatItems.push({
+    title: t('Chat'),
+    icon: MessageSquare,
+    type: 'chat-presets',
+    flat: forkSidebar.flat_chat_presets,
+  })
+  for (const link of forkSidebar.links) {
+    chatItems.push({
+      title: link.name,
+      url: link.url,
+      icon: Gamepad2,
+      external: true,
+    })
+  }
 
   return {
     navGroups: [
       {
         id: 'chat',
-        title: t('Chat'),
-        items: [
-          {
-            title: t('Playground'),
-            url: '/playground',
-            icon: FlaskConical,
-          },
-          {
-            title: t('Chat'),
-            icon: MessageSquare,
-            type: 'chat-presets',
-          },
-        ],
+        title: forkSidebar.group_title || t('Chat'),
+        items: chatItems,
       },
       {
         id: 'general',
@@ -156,6 +174,11 @@ export function useSidebarData(): SidebarData {
             title: t('WeChat Group QR Code'),
             url: '/group-qrcode',
             icon: QrCode,
+          },
+          {
+            title: t('Sidebar Menu'),
+            url: '/sidebar-config',
+            icon: ListTree,
           },
           {
             title: t('Subscriptions'),
