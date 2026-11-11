@@ -16,230 +16,255 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { VChart } from '@visactor/react-vchart'
-import { BarChart3, Trophy } from 'lucide-react'
-import { useMemo } from 'react'
+import { CalendarRange, Crown, Trophy } from 'lucide-react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { useChartTheme } from '@/lib/use-chart-theme'
-import { VCHART_OPTION } from '@/lib/vchart'
+import { Skeleton } from '@/components/ui/skeleton'
+import dayjs from '@/lib/dayjs'
+import { cn } from '@/lib/utils'
 
 import { formatTokens } from '../lib/format'
-import type { ModelHistorySeries, ModelRanking, RankingPeriod } from '../types'
-import { ModelLeaderboard } from './model-leaderboard'
+import type { ModelRanking, RankingPeriod } from '../types'
+import { ModelLink, VendorLink } from './entity-links'
+import { GrowthText } from './growth-text'
 
-const PERIOD_DESCRIPTIONS: Record<RankingPeriod, string> = {
-  today: 'Hourly token usage by model today',
-  week: 'Daily token usage by model over the last 7 days',
-  month: 'Daily token usage by model over the last 30 days',
-}
+const PERIOD_OPTIONS: { id: RankingPeriod; days: number }[] = [
+  { id: 'today', days: 1 },
+  { id: 'week', days: 7 },
+  { id: 'month', days: 30 },
+]
 
-const TOOLTIP_MAX_ROWS = 10
+const MEDAL_COLORS = [
+  'bg-amber-400/20 text-amber-700 dark:text-amber-300 border-amber-400/40',
+  'bg-slate-300/25 text-slate-600 dark:text-slate-300 border-slate-400/40',
+  'bg-orange-400/20 text-orange-700 dark:text-orange-300 border-orange-400/40',
+]
+const MEDAL_COUNT = MEDAL_COLORS.length
+
+type SortKey = 'calls' | 'tokens'
+
+const SORT_OPTIONS: { id: SortKey; labelKey: string }[] = [
+  { id: 'calls', labelKey: 'By calls' },
+  { id: 'tokens', labelKey: 'By tokens' },
+]
 
 type ModelsSectionProps = {
-  history: ModelHistorySeries
   rows: ModelRanking[]
   period: RankingPeriod
+  onPeriodChange: (period: RankingPeriod) => void
+  /** Window covered by the rows (unix seconds). */
+  startTs?: number
+  endTs?: number
+  isLoading?: boolean
 }
 
 /**
- * Combined "Top Models" card: a stacked bar chart showing token usage by
- * model over time, paired below with a two-column LLM Leaderboard. The
- * chart anchors the eye while the leaderboard provides the detailed key.
+ * 模型排行：单列排行榜（与「热门用户」结构一致）。
+ * 支持按调用次数（默认）或 token 用量排序，次数作为主指标加粗突出。
  */
 export function ModelsSection(props: ModelsSectionProps) {
   const { t } = useTranslation()
-  const { resolvedTheme, themeReady } = useChartTheme()
-  const chartTextColor =
-    resolvedTheme === 'dark'
-      ? 'rgba(255, 255, 255, 0.68)'
-      : 'rgba(15, 23, 42, 0.58)'
-  const chartGridColor =
-    resolvedTheme === 'dark'
-      ? 'rgba(255, 255, 255, 0.12)'
-      : 'rgba(15, 23, 42, 0.12)'
+  const [sortKey, setSortKey] = useState<SortKey>('calls')
 
-  // Order points so the largest model appears at the bottom of every stack.
-  const orderedPoints = useMemo(() => {
-    const order = new Map(
-      props.history.models.map((m, idx) => [m.name, idx] as const)
-    )
-    return [...props.history.points].sort((a, b) => {
-      const tsCmp = a.ts.localeCompare(b.ts)
-      if (tsCmp !== 0) return tsCmp
-      return (order.get(a.model) ?? 999) - (order.get(b.model) ?? 999)
-    })
-  }, [props.history])
-
-  const totalTokens = useMemo(
-    () => props.rows.reduce((s, r) => s + r.total_tokens, 0),
-    [props.rows]
-  )
-  const totalCalls = useMemo(
-    () => props.rows.reduce((s, r) => s + r.calls, 0),
-    [props.rows]
-  )
-
-  const spec = useMemo(() => {
-    if (orderedPoints.length === 0) return null
-    return {
-      type: 'bar' as const,
-      data: [{ id: 'models-history', values: orderedPoints }],
-      xField: 'label',
-      yField: 'tokens',
-      seriesField: 'model',
-      stack: true,
-      legends: { visible: false },
-      axes: [
-        {
-          orient: 'bottom',
-          label: {
-            style: { fill: chartTextColor, fontSize: 10 },
-            autoHide: true,
-            autoLimit: true,
-          },
-          tick: { visible: false },
-        },
-        {
-          orient: 'left',
-          label: {
-            formatMethod: (val: number | string) => formatTokens(Number(val)),
-            style: { fill: chartTextColor, fontSize: 10 },
-          },
-          grid: {
-            visible: true,
-            style: { lineDash: [3, 3], stroke: chartGridColor },
-          },
-        },
-      ],
-      tooltip: {
-        mark: {
-          content: [
-            {
-              key: (datum: Record<string, unknown>) =>
-                String(datum?.model ?? ''),
-              value: (datum: Record<string, unknown>) =>
-                formatTokens(Number(datum?.tokens) || 0),
-            },
-          ],
-        },
-        dimension: {
-          title: {
-            value: (datum: Record<string, unknown>) =>
-              String(datum?.label ?? ''),
-          },
-          content: [
-            {
-              key: (datum: Record<string, unknown>) =>
-                String(datum?.model ?? ''),
-              value: (datum: Record<string, unknown>) =>
-                Number(datum?.tokens) || 0,
-            },
-          ],
-          updateContent: (
-            array: Array<{ key: string; value: string | number }>
-          ) => {
-            array.sort((a, b) => Number(b.value) - Number(a.value))
-            const sum = array.reduce((s, x) => s + (Number(x.value) || 0), 0)
-            const visible = array.slice(0, TOOLTIP_MAX_ROWS)
-            const overflow = array.slice(TOOLTIP_MAX_ROWS)
-            const result = visible.map((item) => ({
-              key: item.key,
-              value: formatTokens(Number(item.value) || 0),
-            }))
-            if (overflow.length > 0) {
-              const otherSum = overflow.reduce(
-                (s, item) => s + (Number(item.value) || 0),
-                0
-              )
-              result.push({
-                key: t('+{{count}} more', { count: overflow.length }),
-                value: formatTokens(otherSum),
-              })
-            }
-            result.unshift({ key: t('Total:'), value: formatTokens(sum) })
-            return result
-          },
-        },
-      },
-      animationAppear: { duration: 500 },
+  const sortedRows = useMemo(() => {
+    const rows = [...props.rows]
+    if (sortKey === 'calls') {
+      return rows.sort((a, b) => b.calls - a.calls)
     }
-  }, [chartGridColor, chartTextColor, orderedPoints, t])
+    return rows.sort((a, b) => b.total_tokens - a.total_tokens)
+  }, [props.rows, sortKey])
+
+  const totalCalls = useMemo(
+    () => sortedRows.reduce((sum, r) => sum + r.calls, 0),
+    [sortedRows]
+  )
+
+  const maxMetric = useMemo(() => {
+    if (sortedRows.length === 0) {
+      return 1
+    }
+    const values = sortedRows.map((r) =>
+      sortKey === 'calls' ? r.calls : r.total_tokens
+    )
+    return Math.max(...values, 1)
+  }, [sortedRows, sortKey])
+
+  const rangeLabel = useMemo(() => {
+    if (!props.startTs || !props.endTs) {
+      return ''
+    }
+    return `${dayjs.unix(props.startTs).format('MM-DD HH:mm')} ~ ${dayjs.unix(props.endTs).format('MM-DD HH:mm')}`
+  }, [props.startTs, props.endTs])
+
+  function rankBadge(index: number): ReactNode {
+    if (index < MEDAL_COUNT) {
+      return (
+        <span
+          className={cn(
+            'flex size-7 shrink-0 items-center justify-center rounded-full border',
+            MEDAL_COLORS[index]
+          )}
+        >
+          <Crown className='size-3.5' />
+        </span>
+      )
+    }
+    return (
+      <span className='text-muted-foreground flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold'>
+        {index + 1}
+      </span>
+    )
+  }
+
+  function renderRow(row: ModelRanking, index: number): ReactNode {
+    const metric = sortKey === 'calls' ? row.calls : row.total_tokens
+    const barPct = Math.max(3, (metric / maxMetric) * 100)
+    const secondary =
+      sortKey === 'calls'
+        ? `${formatTokens(row.total_tokens)} token`
+        : `${row.calls.toLocaleString()} ${t('calls')}`
+
+    return (
+      <div
+        key={row.model_name}
+        className='hover:bg-muted/40 flex items-center gap-3 px-3 py-3 transition-colors sm:px-4'
+      >
+        {rankBadge(index)}
+
+        <div className='min-w-0 flex-1'>
+          <div className='flex items-center justify-between gap-2'>
+            <div className='flex min-w-0 items-baseline gap-2'>
+              <ModelLink
+                modelName={row.model_name}
+                className='truncate font-mono text-sm font-medium'
+              >
+                {row.model_name}
+              </ModelLink>
+              <VendorLink
+                vendor={row.vendor}
+                className='text-muted-foreground/80 hidden truncate text-[11px] italic sm:inline'
+              >
+                {row.vendor.toLowerCase()}
+              </VendorLink>
+            </div>
+            <div className='flex shrink-0 items-baseline gap-1'>
+              <span className='text-foreground font-mono text-lg font-semibold tabular-nums'>
+                {sortKey === 'calls'
+                  ? row.calls.toLocaleString()
+                  : formatTokens(row.total_tokens)}
+              </span>
+              <span className='text-muted-foreground text-[11px]'>
+                {sortKey === 'calls' ? t('calls') : t('tokens')}
+              </span>
+            </div>
+          </div>
+          <div className='mt-1.5 flex items-center gap-2'>
+            <div className='bg-muted h-1.5 flex-1 overflow-hidden rounded-full'>
+              <div
+                className='bg-primary/70 h-full rounded-full transition-[width] duration-500'
+                style={{ width: `${barPct}%` }}
+              />
+            </div>
+            <GrowthText
+              value={row.growth_pct}
+              className='shrink-0 text-[11px]'
+            />
+          </div>
+        </div>
+
+        <span className='text-muted-foreground w-24 shrink-0 text-right text-[11px] tabular-nums'>
+          {secondary}
+        </span>
+      </div>
+    )
+  }
+
+  function renderBody(): ReactNode {
+    if (props.isLoading) {
+      return (
+        <div className='space-y-2'>
+          {['s1', 's2', 's3', 's4', 's5'].map((key) => (
+            <Skeleton key={key} className='h-14 w-full rounded-lg' />
+          ))}
+        </div>
+      )
+    }
+    if (sortedRows.length === 0) {
+      return (
+        <div className='text-muted-foreground rounded-xl border border-dashed px-6 py-10 text-center text-sm'>
+          {t('No data for this period')}
+        </div>
+      )
+    }
+    return (
+      <div className='bg-card divide-y overflow-hidden rounded-xl border shadow-sm'>
+        {sortedRows.map((row, index) => renderRow(row, index))}
+      </div>
+    )
+  }
 
   return (
-    <section className='bg-card overflow-hidden rounded-lg border'>
-      {/* Chart block ----------------------------------------------------- */}
-      <header className='flex items-start justify-between gap-4 px-5 py-4'>
-        <div className='min-w-0 flex-1'>
-          <h2 className='text-foreground inline-flex items-center gap-2 text-base font-semibold'>
-            <BarChart3 className='text-primary size-4' />
-            {t('Top Models')}
-          </h2>
-          <p className='text-muted-foreground mt-1 text-sm'>
-            {t(PERIOD_DESCRIPTIONS[props.period])}
-          </p>
+    <section className='space-y-4'>
+      <div className='flex flex-wrap items-center justify-between gap-3'>
+        <div className='flex items-center gap-2'>
+          <Trophy className='text-primary size-5' />
+          <h2 className='text-lg font-semibold'>{t('Model Ranking')}</h2>
+          <span className='text-muted-foreground text-xs'>
+            {t('Models used in this period, ranked automatically')}
+          </span>
         </div>
-        <div className='flex shrink-0 items-start gap-5 text-right'>
-          <div>
-            <div className='text-foreground font-mono text-2xl font-semibold tabular-nums'>
-              {formatTokens(totalTokens)}
-            </div>
-            <div className='text-muted-foreground/80 text-[10px] font-medium tracking-widest uppercase'>
-              {t('tokens')}
-            </div>
+        <div className='flex flex-col items-end gap-1'>
+          <div className='bg-muted/60 inline-flex rounded-lg p-0.5'>
+            {PERIOD_OPTIONS.map((option) => (
+              <button
+                key={option.id}
+                type='button'
+                onClick={() => props.onPeriodChange(option.id)}
+                className={cn(
+                  'rounded-md px-3 py-1 text-xs font-medium transition-colors',
+                  option.id === props.period
+                    ? 'bg-background shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                {t('Last N days', { n: option.days })}
+              </button>
+            ))}
           </div>
-          <div>
-            <div className='text-foreground font-mono text-2xl font-semibold tabular-nums'>
-              {totalCalls.toLocaleString()}
-            </div>
-            <div className='text-muted-foreground/80 text-[10px] font-medium tracking-widest uppercase'>
-              {t('calls')}
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <div className='px-5 pb-5'>
-        <div className='h-60 sm:h-72'>
-          {themeReady && spec ? (
-            <VChart
-              key={`models-history-${resolvedTheme}-${props.period}`}
-              spec={{
-                ...spec,
-                theme: resolvedTheme === 'dark' ? 'dark' : 'light',
-                background: 'transparent',
-              }}
-              option={VCHART_OPTION}
-            />
-          ) : (
-            <div className='text-muted-foreground/80 flex h-full items-center justify-center text-xs'>
-              {t('No history data available')}
-            </div>
+          {rangeLabel !== '' && (
+            <span className='text-muted-foreground flex items-center gap-1 text-[11px] tabular-nums'>
+              <CalendarRange className='size-3' />
+              {rangeLabel}
+            </span>
           )}
         </div>
       </div>
 
-      {/* Leaderboard block ----------------------------------------------- */}
-      <div className='border-t'>
-        <header className='px-5 pt-4 pb-2'>
-          <h3 className='text-foreground inline-flex items-center gap-2 text-sm font-semibold'>
-            <Trophy className='size-3.5 text-amber-500' />
-            {t('LLM Leaderboard')}
-          </h3>
-          <p className='text-muted-foreground/80 mt-0.5 text-xs'>
-            {t('Compare the most popular models on the platform')}
-          </p>
-        </header>
-        {props.rows.length === 0 ? (
-          <div className='text-muted-foreground/80 px-5 py-8 text-center text-sm'>
-            {t('No models match the selected filters')}
-          </div>
-        ) : (
-          <div className='px-5 pt-1 pb-4'>
-            <ModelLeaderboard rows={props.rows} />
-          </div>
-        )}
+      <div className='flex flex-wrap items-center justify-between gap-3'>
+        <div className='bg-muted/60 inline-flex rounded-lg p-0.5'>
+          {SORT_OPTIONS.map((option) => (
+            <button
+              key={option.id}
+              type='button'
+              onClick={() => setSortKey(option.id)}
+              className={cn(
+                'rounded-md px-3 py-1 text-xs font-medium transition-colors',
+                option.id === sortKey
+                  ? 'bg-background shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              {t(option.labelKey)}
+            </button>
+          ))}
+        </div>
+        <span className='text-muted-foreground text-[11px] tabular-nums'>
+          {t('Total calls')}: {totalCalls.toLocaleString()}
+        </span>
       </div>
+
+      {renderBody()}
     </section>
   )
 }

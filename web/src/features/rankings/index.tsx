@@ -29,7 +29,6 @@ import { ModelsSection, RankingsHero } from './components'
 import { AboutSection } from './components/about-section'
 import { ModelHealthSection } from './components/model-health-section'
 import { TopUsersSection } from './components/top-users-section'
-import { RankingsPeriodTabs } from './components/rankings-hero'
 import { useRankings } from './hooks/use-rankings'
 import type { RankingPeriod } from './types'
 
@@ -73,9 +72,11 @@ export function Rankings() {
     }
     return (
       <ModelsSection
-        history={snapshot.models_history}
         rows={snapshot.models}
         period={period}
+        onPeriodChange={handlePeriodChange}
+        startTs={snapshot.start_ts}
+        endTs={snapshot.end_ts}
       />
     )
   }
@@ -119,12 +120,6 @@ export function Rankings() {
             </TabsList>
 
             <TabsContent value='platform' className='mt-4 space-y-6'>
-              <RankingsPeriodTabs
-                period={period}
-                onPeriodChange={handlePeriodChange}
-                startTs={snapshot?.start_ts}
-                endTs={snapshot?.end_ts}
-              />
               <div className='space-y-8'>{platformContent}</div>
             </TabsContent>
 

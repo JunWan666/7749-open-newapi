@@ -21,6 +21,7 @@ import { Activity, RefreshCw } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { CopyButton } from '@/components/copy-button'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   Tooltip,
@@ -224,6 +225,12 @@ export function ModelHealthSection() {
                           </span>
                         )}
                       </div>
+                      <CopyButton
+                        value={model.model}
+                        tooltip={t('Copy model name')}
+                        className='text-muted-foreground/60 hover:text-foreground size-6 shrink-0'
+                        iconClassName='size-3'
+                      />
                     </div>
                   </td>
                   <td className='px-3 py-2'>
