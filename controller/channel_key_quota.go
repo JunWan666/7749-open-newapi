@@ -104,10 +104,7 @@ func GetKeyQuotaOverview(c *gin.Context) {
 	}
 	views := make([]KeyQuotaChannelView, 0, len(channels))
 	for _, channel := range channels {
-		guard := channel.ChannelInfo.KeyQuotaGuard
-		if guard == nil || !guard.Enabled {
-			continue
-		}
+		// 只列多 key 渠道（含未开启保护的），方便在这个页面直接开开关
 		if !channel.ChannelInfo.IsMultiKey {
 			continue
 		}

@@ -33,6 +33,7 @@ import {
   MessageSquareText,
   ServerCog,
   ShieldAlert,
+  ShieldCheck,
   Settings,
   Ticket,
   User,
@@ -192,6 +193,11 @@ export function useSidebarData(): SidebarData {
             title: t('Sidebar Menu'),
             url: '/sidebar-config',
             icon: ListTree,
+          },
+          {
+            title: t('Key Quota Guard'),
+            url: '/key-quota',
+            icon: ShieldCheck,
           },
           {
             title: t('Subscriptions'),

@@ -43,10 +43,23 @@ type HealthModel = {
   calls_7d: number
 }
 
+type HealthKeyQuota = {
+  enabled: boolean
+  total_keys: number
+  usable_keys: number
+  auto_disabled: number
+  manual_disabled: number
+  daily_quota_per_key: number
+  cost_per_call: number
+  calls_per_key: number
+  estimated_calls: number | null
+}
+
 type HealthChannel = {
   id: number
   name: string
   group: string
+  key_quota?: HealthKeyQuota | null
   models: HealthModel[]
   history?: Record<string, string[]>
   history_ms?: Record<string, Array<number | null>>
@@ -326,6 +339,31 @@ export function ModelHealthSection() {
             )
           })}
         </div>
+
+        {activeChannel?.key_quota?.enabled && (
+          <div className='bg-muted/30 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border px-3 py-2 text-[11px]'>
+            <span>
+              {t('Keys available')}:{' '}
+              <span className='text-foreground font-semibold tabular-nums'>
+                {activeChannel.key_quota.usable_keys}/
+                {activeChannel.key_quota.total_keys}
+              </span>
+            </span>
+            {activeChannel.key_quota.auto_disabled > 0 && (
+              <span className='text-rose-600 dark:text-rose-400'>
+                {t('Auto-disabled')}: {activeChannel.key_quota.auto_disabled}
+              </span>
+            )}
+            {activeChannel.key_quota.estimated_calls !== null && (
+              <span>
+                {t('Estimated calls left today')}:{' '}
+                <span className='text-foreground font-semibold tabular-nums'>
+                  ~{activeChannel.key_quota.estimated_calls.toLocaleString()}
+                </span>
+              </span>
+            )}
+          </div>
+        )}
 
         {activeChannel && renderModels(activeChannel)}
 
