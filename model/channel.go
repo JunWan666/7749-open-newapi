@@ -70,6 +70,25 @@ type ChannelInfo struct {
 	// KeyQuotaGuard 是本 fork 新增的「按 key 额度熔断」配置，
 	// 仅对该渠道生效（nil 或 Enabled=false 时完全不影响行为）。
 	KeyQuotaGuard *KeyQuotaGuard `json:"key_quota_guard,omitempty"`
+	// KeyBalanceProbe 控制「自动查询每个 key 余额」的任务（可选）。
+	KeyBalanceProbe *KeyBalanceProbe `json:"key_balance_probe,omitempty"`
+	// KeyBalances 保存最近一次探测到的每个 key 余额，key index -> 余额信息。
+	KeyBalances map[int]KeyBalanceInfo `json:"key_balances,omitempty"`
+}
+
+// KeyBalanceInfo 是某个 key 最近一次余额探测的结果。
+type KeyBalanceInfo struct {
+	Balance   float64 `json:"balance"`
+	UpdatedAt int64   `json:"updated_at"`
+	Error     string  `json:"error,omitempty"`
+}
+
+// KeyBalanceProbe 配置定期查询 key 余额的任务。
+type KeyBalanceProbe struct {
+	Enabled bool `json:"enabled"`
+	// URL 是余额查询地址，用 {key} 占位符代替密钥。
+	URL             string `json:"url"`
+	IntervalMinutes int    `json:"interval_minutes"`
 }
 
 // KeyQuotaGuard 控制多 key 渠道的额度保护：

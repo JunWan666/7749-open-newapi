@@ -340,30 +340,46 @@ export function ModelHealthSection() {
           })}
         </div>
 
-        {activeChannel?.key_quota?.enabled && (
-          <div className='bg-muted/30 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border px-3 py-2 text-[11px]'>
-            <span>
-              {t('Keys available')}:{' '}
-              <span className='text-foreground font-semibold tabular-nums'>
-                {activeChannel.key_quota.usable_keys}/
-                {activeChannel.key_quota.total_keys}
+        {activeChannel?.key_quota?.enabled &&
+          activeChannel.key_quota.estimated_calls !== null && (
+            <div className='bg-muted/30 flex flex-wrap items-center gap-3 rounded-lg border px-3 py-2'>
+              <div className='min-w-[200px] flex-1'>
+                <div className='flex items-baseline justify-between gap-2 text-[11px]'>
+                  <span className='text-muted-foreground'>
+                    {t('Estimated calls left today')}
+                  </span>
+                  <span className='text-foreground font-mono text-base font-semibold tabular-nums'>
+                    ~
+                    {activeChannel.key_quota.estimated_calls.toLocaleString()}
+                  </span>
+                </div>
+                <div className='bg-muted mt-1.5 h-2 overflow-hidden rounded-full'>
+                  <div
+                    className='bg-primary/70 h-full rounded-full transition-[width] duration-700'
+                    style={{
+                      width: `${Math.min(
+                        100,
+                        Math.max(
+                          2,
+                          (activeChannel.key_quota.estimated_calls /
+                            Math.max(
+                              1,
+                              activeChannel.key_quota.total_keys *
+                                activeChannel.key_quota.calls_per_key
+                            )) *
+                            100
+                        )
+                      )}%`,
+                    }}
+                  />
+                </div>
+              </div>
+              <span className='text-muted-foreground/80 flex items-center gap-1 text-[10px]'>
+                <span className='inline-block size-1.5 animate-pulse rounded-full bg-emerald-500' />
+                {t('Live, refreshes every minute')}
               </span>
-            </span>
-            {activeChannel.key_quota.auto_disabled > 0 && (
-              <span className='text-rose-600 dark:text-rose-400'>
-                {t('Auto-disabled')}: {activeChannel.key_quota.auto_disabled}
-              </span>
-            )}
-            {activeChannel.key_quota.estimated_calls !== null && (
-              <span>
-                {t('Estimated calls left today')}:{' '}
-                <span className='text-foreground font-semibold tabular-nums'>
-                  ~{activeChannel.key_quota.estimated_calls.toLocaleString()}
-                </span>
-              </span>
-            )}
-          </div>
-        )}
+            </div>
+          )}
 
         {activeChannel && renderModels(activeChannel)}
 

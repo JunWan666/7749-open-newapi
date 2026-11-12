@@ -130,6 +130,8 @@ func main() {
 
 	// fork: 多 key 渠道的 key 额度保护——每天 00:05 把自动熔断的 key 放回号池
 	service.StartKeyQuotaGuardScheduler()
+	// fork: 按渠道配置的间隔自动刷新每个 key 的余额（可选）
+	service.StartKeyBalanceProbeScheduler()
 
 	// Report this process as a system instance so the System Info page can show
 	// all currently alive nodes in multi-instance deployments.
