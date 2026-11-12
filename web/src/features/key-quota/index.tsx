@@ -188,10 +188,10 @@ export function KeyQuotaPage() {
                 label={t('Estimated calls left today')}
                 value={
                   active?.enabled
-                    ? (summary?.estimated_remaining_calls ?? 0).toLocaleString()
+                    ? `~${(summary?.estimated_remaining_calls ?? 0).toLocaleString()} / ${(summary?.total_capacity_calls ?? 0).toLocaleString()}`
                     : '—'
                 }
-                hint={t('available keys × daily calls per key')}
+                hint={`${t('Used today')}: ${(summary?.today_calls ?? 0).toLocaleString()}`}
               />
               <StatCard
                 label={t('Available keys')}

@@ -38,6 +38,8 @@ type KeyQuotaChannelView struct {
 	DailyQuotaPerKey       int               `json:"daily_quota_per_key"`
 	CostPerCall            int               `json:"cost_per_call"`
 	EstimatedRemainingCall int64             `json:"estimated_remaining_calls"`
+	TotalCapacityCall      int64             `json:"total_capacity_calls"`
+	TodayCalls             int64             `json:"today_calls"`
 	BalanceSum             float64           `json:"balance_sum"`
 	BalanceUpdatedAt       int64             `json:"balance_updated_at"`
 	ProbeEnabled           bool              `json:"probe_enabled"`
@@ -106,14 +108,21 @@ func buildKeyQuotaView(channel *model.Channel) KeyQuotaChannelView {
 	}
 	view.UsableKeys = view.TotalKeys - view.AutoDisabledKeys - view.ManualDisabledKeys
 
-	// 剩余可调用次数 ≈ 可用 key 数 × (每号日额度 / 每次消耗)
+	// 剩余可调用次数 = 可用 key 数 × 每号每日次数 − 今日已调用次数
 	if guard != nil {
 		view.Enabled = guard.Enabled
 		view.DailyQuotaPerKey = guard.DailyQuotaPerKey
 		view.CostPerCall = guard.CostPerCall
 		if guard.DailyQuotaPerKey > 0 && guard.CostPerCall > 0 {
 			perKey := guard.DailyQuotaPerKey / guard.CostPerCall
-			view.EstimatedRemainingCall = int64(view.UsableKeys) * int64(perKey)
+			view.TotalCapacityCall = int64(view.UsableKeys) * int64(perKey)
+		}
+	}
+	view.TodayCalls = model.GetChannelTodayCalls(channel.Id)
+	if view.Enabled {
+		view.EstimatedRemainingCall = view.TotalCapacityCall - view.TodayCalls
+		if view.EstimatedRemainingCall < 0 {
+			view.EstimatedRemainingCall = 0
 		}
 	}
 	if probe := channel.ChannelInfo.KeyBalanceProbe; probe != nil {

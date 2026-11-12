@@ -24,6 +24,8 @@ export type KeyQuotaChannel = {
   daily_quota_per_key: number
   cost_per_call: number
   estimated_remaining_calls: number
+  total_capacity_calls: number
+  today_calls: number
   balance_sum: number
   balance_updated_at: number
   probe_enabled: boolean

@@ -53,6 +53,8 @@ type HealthKeyQuota = {
   cost_per_call: number
   calls_per_key: number
   estimated_calls: number | null
+  today_calls?: number
+  total_calls?: number
 }
 
 type HealthChannel = {
@@ -343,7 +345,7 @@ export function ModelHealthSection() {
         {activeChannel?.key_quota?.enabled &&
           activeChannel.key_quota.estimated_calls !== null && (
             <div className='bg-muted/30 flex flex-wrap items-center gap-3 rounded-lg border px-3 py-2'>
-              <div className='min-w-[200px] flex-1'>
+              <div className='min-w-[220px] flex-1'>
                 <div className='flex items-baseline justify-between gap-2 text-[11px]'>
                   <span className='text-muted-foreground'>
                     {t('Estimated calls left today')}
@@ -351,6 +353,14 @@ export function ModelHealthSection() {
                   <span className='text-foreground font-mono text-base font-semibold tabular-nums'>
                     ~
                     {activeChannel.key_quota.estimated_calls.toLocaleString()}
+                    <span className='text-muted-foreground/70 ml-1 text-[11px] font-normal'>
+                      /{' '}
+                      {(
+                        activeChannel.key_quota.total_calls ??
+                        activeChannel.key_quota.usable_keys *
+                          activeChannel.key_quota.calls_per_key
+                      ).toLocaleString()}
+                    </span>
                   </span>
                 </div>
                 <div className='bg-muted mt-1.5 h-2 overflow-hidden rounded-full'>
@@ -364,8 +374,9 @@ export function ModelHealthSection() {
                           (activeChannel.key_quota.estimated_calls /
                             Math.max(
                               1,
-                              activeChannel.key_quota.total_keys *
-                                activeChannel.key_quota.calls_per_key
+                              activeChannel.key_quota.total_calls ??
+                                activeChannel.key_quota.usable_keys *
+                                  activeChannel.key_quota.calls_per_key
                             )) *
                             100
                         )
@@ -374,10 +385,18 @@ export function ModelHealthSection() {
                   />
                 </div>
               </div>
-              <span className='text-muted-foreground/80 flex items-center gap-1 text-[10px]'>
-                <span className='inline-block size-1.5 animate-pulse rounded-full bg-emerald-500' />
-                {t('Live, refreshes every minute')}
-              </span>
+              <div className='flex flex-col items-end gap-0.5 text-[10px]'>
+                {(activeChannel.key_quota.today_calls ?? 0) > 0 && (
+                  <span className='text-muted-foreground/80 tabular-nums'>
+                    {t('Used today')}:{' '}
+                    {(activeChannel.key_quota.today_calls ?? 0).toLocaleString()}
+                  </span>
+                )}
+                <span className='text-muted-foreground/80 flex items-center gap-1'>
+                  <span className='inline-block size-1.5 animate-pulse rounded-full bg-emerald-500' />
+                  {t('Live, refreshes every minute')}
+                </span>
+              </div>
             </div>
           )}
 
