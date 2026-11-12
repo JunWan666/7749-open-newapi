@@ -80,6 +80,9 @@ export function useSidebarData(): SidebarData {
       })
     }
     for (const link of group.links) {
+      if (link.hidden) {
+        continue
+      }
       items.push({
         title: link.name,
         url: link.url,

@@ -16,6 +16,8 @@ type SidebarLink struct {
 	URL  string `json:"url"`
 	// Embed shows the page inside the console (iframe) instead of a new tab.
 	Embed bool `json:"embed"`
+	// Hidden keeps the entry configured but not rendered in the sidebar.
+	Hidden bool `json:"hidden,omitempty"`
 }
 
 // SidebarGroup is one group of the console sidebar; editable from the admin console.
@@ -133,7 +135,7 @@ func normalizeSidebarLinks(links []SidebarLink) []SidebarLink {
 		if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
 			continue
 		}
-		cleaned = append(cleaned, SidebarLink{Name: name, URL: url, Embed: link.Embed})
+		cleaned = append(cleaned, SidebarLink{Name: name, URL: url, Embed: link.Embed, Hidden: link.Hidden})
 		if len(cleaned) >= sidebarMaxLinks {
 			break
 		}

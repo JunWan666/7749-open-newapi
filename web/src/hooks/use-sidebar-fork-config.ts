@@ -7,6 +7,8 @@ export type SidebarForkLink = {
   url: string
   /** Open inside the console (iframe) instead of a new tab. */
   embed?: boolean
+  /** Configured but not shown in the sidebar. */
+  hidden?: boolean
 }
 
 export type SidebarForkGroup = {
@@ -46,7 +48,13 @@ function normalizeGroup(group: SidebarForkGroup): SidebarForkGroup {
     show_playground: Boolean(group.show_playground),
     show_chat_presets: Boolean(group.show_chat_presets),
     flat_chat_presets: Boolean(group.flat_chat_presets),
-    links: Array.isArray(group.links) ? group.links : [],
+    links: Array.isArray(group.links)
+      ? group.links.map((link) => ({
+          ...link,
+          embed: Boolean(link.embed),
+          hidden: Boolean(link.hidden),
+        }))
+      : [],
   }
 }
 

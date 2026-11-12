@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { GripVertical, Plus, Save, Trash2 } from 'lucide-react'
+import { Eye, EyeOff, GripVertical, Plus, Save, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
+import { cn } from '@/lib/utils'
 
 import {
   getSidebarConfig,
@@ -90,7 +91,7 @@ export function SidebarConfigPage() {
     updateGroup(groupIndex, {
       links: [
         ...config.groups[groupIndex].links,
-        { name: '', url: 'https://', embed: true },
+        { name: '', url: 'https://', embed: true, hidden: false },
       ],
     })
   }
@@ -160,6 +161,7 @@ export function SidebarConfigPage() {
             name: link.name.trim(),
             url: link.url.trim(),
             embed: link.embed,
+            hidden: link.hidden,
           })),
         })),
       })
@@ -332,7 +334,9 @@ function GroupCard(props: { group: SidebarGroupData; handlers: GroupHandlers }) 
           group.links.map((link, linkIndex) => (
             <div
               key={`link-${linkIndex}`}
-              className='flex flex-col gap-2 rounded-lg border p-2'
+              className={`flex flex-col gap-2 rounded-lg border p-2 ${
+                link.hidden ? 'bg-muted/30 opacity-70' : ''
+              }`}
             >
               <div className='flex items-center gap-2'>
                 <GripVertical className='text-muted-foreground/50 size-4 shrink-0' />
@@ -376,6 +380,26 @@ function GroupCard(props: { group: SidebarGroupData; handlers: GroupHandlers }) 
                   <Button
                     size='icon'
                     variant='ghost'
+                    className={cn(
+                      'size-8',
+                      link.hidden
+                        ? 'text-muted-foreground'
+                        : 'text-muted-foreground/60'
+                    )}
+                    aria-label={link.hidden ? t('Show in sidebar') : t('Hide from sidebar')}
+                    onClick={() =>
+                      handlers.onPatchLink(linkIndex, { hidden: !link.hidden })
+                    }
+                  >
+                    {link.hidden ? (
+                      <EyeOff className='size-3.5' />
+                    ) : (
+                      <Eye className='size-3.5' />
+                    )}
+                  </Button>
+                  <Button
+                    size='icon'
+                    variant='ghost'
                     className='text-destructive size-8'
                     aria-label={t('Delete')}
                     onClick={() => handlers.onRemoveLink(linkIndex)}
@@ -393,6 +417,11 @@ function GroupCard(props: { group: SidebarGroupData; handlers: GroupHandlers }) 
                   }
                 />
                 <span>{t('Embed in console (iframe)')}</span>
+                {link.hidden && (
+                  <span className='rounded bg-muted px-1.5 py-0.5 text-[10px]'>
+                    {t('Hidden in sidebar')}
+                  </span>
+                )}
               </div>
             </div>
           ))

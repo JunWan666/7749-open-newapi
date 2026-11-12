@@ -5,6 +5,8 @@ export type SidebarLinkData = {
   url: string
   /** 站内内嵌显示（iframe）；关闭则新窗口打开。 */
   embed: boolean
+  /** 隐藏但保留配置（不显示在侧边栏）。 */
+  hidden: boolean
 }
 
 export type SidebarGroupData = {
