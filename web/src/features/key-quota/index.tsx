@@ -130,8 +130,13 @@ export function KeyQuotaPage() {
         {overview.isLoading ? (
           <Skeleton className='h-64 w-full rounded-xl' />
         ) : channels.length === 0 ? (
-          <div className='text-muted-foreground rounded-xl border border-dashed px-6 py-10 text-center text-sm'>
-            {t('No multi-key channels found')}
+          <div className='text-muted-foreground flex flex-col items-center gap-2 rounded-xl border border-dashed px-6 py-10 text-center text-sm'>
+            <span>{t('No channel has quota guard enabled')}</span>
+            <span className='text-xs'>
+              {t(
+                'Open Channels, edit a multi-key channel, and switch on “Key Quota Guard” to see it here.'
+              )}
+            </span>
           </div>
         ) : (
           <div className='flex w-full flex-col gap-4'>

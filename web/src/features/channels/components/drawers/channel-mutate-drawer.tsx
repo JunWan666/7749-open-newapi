@@ -184,6 +184,7 @@ import {
 } from '../dialogs/missing-models-confirmation-dialog'
 import { ParamOverrideEditorDialog } from '../dialogs/param-override-editor-dialog'
 import { StatusCodeRiskDialog } from '../dialogs/status-code-risk-dialog'
+import { KeyQuotaGuardSection } from '../key-quota-guard-section'
 import { ModelMappingEditor } from '../model-mapping-editor'
 import {
   ChannelAdvancedSection,
@@ -3182,6 +3183,18 @@ export function ChannelMutateDrawer({
                                   )}
                                 />
                               )}
+
+                              {isEditing &&
+                                isMultiKeyChannel &&
+                                channelId !== null && (
+                                  <KeyQuotaGuardSection
+                                    channelId={channelId}
+                                    guard={
+                                      channelData?.data?.channel_info
+                                        ?.key_quota_guard
+                                    }
+                                  />
+                                )}
 
                               {!isEditing &&
                                 multiKeyMode === 'multi_to_single' && (

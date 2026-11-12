@@ -30,6 +30,31 @@ export const channelInfoSchema = z.object({
   multi_key_disabled_time: z.record(z.string(), z.number()).optional(),
   multi_key_polling_index: z.number().default(0),
   multi_key_mode: z.enum(['random', 'polling']).default('random'),
+  // fork: 多 key 渠道的额度保护 / 余额探测
+  key_quota_guard: z
+    .object({
+      enabled: z.boolean(),
+      daily_quota_per_key: z.number(),
+      cost_per_call: z.number(),
+    })
+    .optional(),
+  key_balance_probe: z
+    .object({
+      enabled: z.boolean(),
+      url: z.string().optional(),
+      interval_minutes: z.number(),
+    })
+    .optional(),
+  key_balances: z
+    .record(
+      z.string(),
+      z.object({
+        balance: z.number(),
+        updated_at: z.number(),
+        error: z.string().optional(),
+      })
+    )
+    .optional(),
 })
 
 export type ChannelInfo = z.infer<typeof channelInfoSchema>

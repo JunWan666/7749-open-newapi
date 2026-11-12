@@ -138,8 +138,12 @@ func GetKeyQuotaOverview(c *gin.Context) {
 	}
 	views := make([]KeyQuotaChannelView, 0, len(channels))
 	for _, channel := range channels {
-		// 只列多 key 渠道（含未开启保护的），方便在这个页面直接开开关
+		// 只显示「在渠道编辑里开启了额度保护」的多 key 渠道
 		if !channel.ChannelInfo.IsMultiKey {
+			continue
+		}
+		guard := channel.ChannelInfo.KeyQuotaGuard
+		if guard == nil || !guard.Enabled {
 			continue
 		}
 		view := buildKeyQuotaView(channel)
