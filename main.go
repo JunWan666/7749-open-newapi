@@ -128,6 +128,9 @@ func main() {
 	// Subscription quota reset task (daily/weekly/monthly/custom)
 	service.StartSubscriptionQuotaResetTask()
 
+	// fork: 多 key 渠道的 key 额度保护——每天 00:05 把自动熔断的 key 放回号池
+	service.StartKeyQuotaGuardScheduler()
+
 	// Report this process as a system instance so the System Info page can show
 	// all currently alive nodes in multi-instance deployments.
 	service.StartSystemInstanceReporter()

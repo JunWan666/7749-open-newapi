@@ -67,6 +67,20 @@ type ChannelInfo struct {
 	MultiKeyDisabledTime   map[int]int64         `json:"multi_key_disabled_time,omitempty"`   // key禁用时间列表，key index -> time
 	MultiKeyPollingIndex   int                   `json:"multi_key_polling_index"`             // 多Key模式下轮询的key索引
 	MultiKeyMode           constant.MultiKeyMode `json:"multi_key_mode"`
+	// KeyQuotaGuard 是本 fork 新增的「按 key 额度熔断」配置，
+	// 仅对该渠道生效（nil 或 Enabled=false 时完全不影响行为）。
+	KeyQuotaGuard *KeyQuotaGuard `json:"key_quota_guard,omitempty"`
+}
+
+// KeyQuotaGuard 控制多 key 渠道的额度保护：
+//   - 命中 429 + 额度类关键字时，只禁用当前使用的那个 key
+//   - 每天 00:05 自动把被自动禁用的 key 全部放回号池
+type KeyQuotaGuard struct {
+	Enabled bool `json:"enabled"`
+	// DailyQuotaPerKey 是每个号每天可用的额度（上游单位，例如 ModelScope 的 250）
+	DailyQuotaPerKey int `json:"daily_quota_per_key"`
+	// CostPerCall 是每次调用消耗的额度单位（例如 2），用于估算剩余调用次数
+	CostPerCall int `json:"cost_per_call"`
 }
 
 type ChannelSortOptions struct {
