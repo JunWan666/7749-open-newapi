@@ -3,6 +3,7 @@ package controller
 import (
 	"fmt"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -208,6 +209,43 @@ func GetKeyQuotaKeys(c *gin.Context) {
 		filtered = append(filtered, item)
 	}
 
+	// 排序：balance（余额）/ status（状态）/ index（序号），支持升降序
+	sortKey := strings.TrimSpace(c.DefaultQuery("sort", "index"))
+	sortOrder := strings.TrimSpace(c.DefaultQuery("order", "asc"))
+	if sortOrder != "desc" {
+		sortOrder = "asc"
+	}
+	sort.SliceStable(filtered, func(i, j int) bool {
+		left, right := filtered[i], filtered[j]
+		var less bool
+		switch sortKey {
+		case "balance":
+			// 未探测过余额的 key 统一排到最后
+			leftKnown := left.BalanceAt > 0
+			rightKnown := right.BalanceAt > 0
+			if leftKnown != rightKnown {
+				return leftKnown
+			}
+			if left.Balance == right.Balance {
+				less = left.Index < right.Index
+			} else {
+				less = left.Balance < right.Balance
+			}
+		case "status":
+			if left.Status == right.Status {
+				less = left.Index < right.Index
+			} else {
+				less = left.Status < right.Status
+			}
+		default:
+			less = left.Index < right.Index
+		}
+		if sortOrder == "desc" {
+			return !less
+		}
+		return less
+	})
+
 	total := len(filtered)
 	start := (page - 1) * pageSize
 	if start > total {
@@ -363,6 +401,56 @@ func ProbeKeyBalances(c *gin.Context) {
 		"success": true,
 		"message": fmt.Sprintf("已查询 %d 个 key 的余额", probed),
 	})
+}
+
+// ToggleKeyQuotaKey 手动禁用/启用单个 key。
+func ToggleKeyQuotaKey(c *gin.Context) {
+	channelId, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+	var req struct {
+		Index   int  `json:"index"`
+		Disable bool `json:"disable"`
+	}
+	if err := common.DecodeJson(c.Request.Body, &req); err != nil {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+	channel, err := model.GetChannelById(channelId, true)
+	if err != nil || channel == nil {
+		common.ApiErrorI18n(c, i18n.MsgChannelNotExists)
+		return
+	}
+	keys := channel.GetKeys()
+	if req.Index < 0 || req.Index >= len(keys) {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "key 序号不存在"})
+		return
+	}
+	if req.Disable {
+		// 手动禁用用 ChannelStatusManuallyDisabled，不会被每日恢复任务放回
+		status := common.ChannelStatusManuallyDisabled
+		if ok := model.UpdateChannelStatus(channel.Id, keys[req.Index], status, "[manual] 管理员手动禁用"); !ok {
+			c.JSON(http.StatusOK, gin.H{"success": false, "message": "禁用失败"})
+			return
+		}
+		recordManageAuditFor(c, 0, "channel.key_quota_disable", map[string]interface{}{
+			"channel_id": channelId,
+			"index":      req.Index,
+		})
+		c.JSON(http.StatusOK, gin.H{"success": true, "message": "已禁用该 key"})
+		return
+	}
+	if ok := model.UpdateChannelStatus(channel.Id, keys[req.Index], common.ChannelStatusEnabled, ""); !ok {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "启用失败"})
+		return
+	}
+	recordManageAuditFor(c, 0, "channel.key_quota_enable", map[string]interface{}{
+		"channel_id": channelId,
+		"index":      req.Index,
+	})
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "已启用该 key"})
 }
 
 // ResetKeyQuotaGuardNow 立即把某渠道被自动禁用的 key 恢复（管理员手动救急）。

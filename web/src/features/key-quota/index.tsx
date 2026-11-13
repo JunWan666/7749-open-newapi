@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
+  ArrowUpDown,
   ChevronLeft,
   ChevronRight,
   RefreshCw,
@@ -24,10 +25,12 @@ import {
   getKeyQuotaOverview,
   probeKeyBalances,
   resetKeyQuotaGuard,
+  toggleKeyQuotaKey,
   updateKeyBalanceProbe,
   updateKeyQuotaGuard,
   type KeyQuotaChannel,
   type KeyQuotaKeyStatus,
+  type KeyQuotaSortKey,
 } from './api'
 
 const KEY_STATUS_STYLE: Record<number, string> = {
@@ -60,6 +63,8 @@ export function KeyQuotaPage() {
   const [keyword, setKeyword] = useState('')
   const [page, setPage] = useState(1)
   const [probing, setProbing] = useState(false)
+  const [sortKey, setSortKey] = useState<KeyQuotaSortKey>('index')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
 
   const overview = useQuery({
     queryKey: ['key-quota-overview'],
@@ -70,7 +75,15 @@ export function KeyQuotaPage() {
   const active = channels.find((ch) => ch.id === channelId) ?? channels[0]
 
   const keysQuery = useQuery({
-    queryKey: ['key-quota-keys', active?.id, page, status, keyword],
+    queryKey: [
+      'key-quota-keys',
+      active?.id,
+      page,
+      status,
+      keyword,
+      sortKey,
+      sortOrder,
+    ],
     queryFn: () =>
       getKeyQuotaKeys({
         channelId: Number(active?.id),
@@ -78,6 +91,8 @@ export function KeyQuotaPage() {
         pageSize: PAGE_SIZE,
         status,
         keyword,
+        sort: sortKey,
+        order: sortOrder,
       }),
     enabled: Boolean(active?.id),
     refetchInterval: 60_000,
@@ -108,6 +123,32 @@ export function KeyQuotaPage() {
       toast.error(t('Save failed'))
     } finally {
       setProbing(false)
+    }
+  }
+
+  function toggleSort(next: KeyQuotaSortKey) {
+    if (sortKey === next) {
+      setSortOrder((value) => (value === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortKey(next)
+      setSortOrder('asc')
+    }
+    setPage(1)
+  }
+
+  async function toggleKey(index: number, disable: boolean) {
+    if (!active) {
+      return
+    }
+    const res = await toggleKeyQuotaKey(active.id, index, disable)
+    if (res?.success) {
+      toast.success(res.message || t('Saved'))
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['key-quota-keys'] }),
+        queryClient.invalidateQueries({ queryKey: ['key-quota-overview'] }),
+      ])
+    } else {
+      toast.error(res?.message || t('Save failed'))
     }
   }
 
@@ -265,15 +306,33 @@ export function KeyQuotaPage() {
                 <table className='w-full min-w-[860px] text-xs'>
                   <thead>
                     <tr className='bg-muted/40 text-muted-foreground border-b text-[11px]'>
-                      <th className='w-12 px-3 py-2 text-left font-medium'>#</th>
+                      <th className='w-16 px-3 py-2 text-left font-medium'>
+                        <SortHeader
+                          label='#'
+                          active={sortKey === 'index'}
+                          order={sortOrder}
+                          onClick={() => toggleSort('index')}
+                        />
+                      </th>
                       <th className='px-3 py-2 text-left font-medium'>
                         {t('Key')}
                       </th>
                       <th className='px-3 py-2 text-left font-medium'>
-                        {t('Status')}
+                        <SortHeader
+                          label={t('Status')}
+                          active={sortKey === 'status'}
+                          order={sortOrder}
+                          onClick={() => toggleSort('status')}
+                        />
                       </th>
                       <th className='px-3 py-2 text-right font-medium'>
-                        {t('Balance')}
+                        <SortHeader
+                          label={t('Balance')}
+                          active={sortKey === 'balance'}
+                          order={sortOrder}
+                          align='right'
+                          onClick={() => toggleSort('balance')}
+                        />
                       </th>
                       <th className='px-3 py-2 text-left font-medium'>
                         {t('Reason')}
@@ -358,7 +417,7 @@ export function KeyQuotaPage() {
                               ? dayjs.unix(key.disabled_at).format('MM-DD HH:mm')
                               : '-'}
                           </td>
-                          <td className='px-3 py-1.5 text-right'>
+                          <td className='px-3 py-1.5 text-right whitespace-nowrap'>
                             <Button
                               size='sm'
                               variant='ghost'
@@ -369,6 +428,29 @@ export function KeyQuotaPage() {
                             >
                               {t('Check')}
                             </Button>
+                            {key.status === 1 ? (
+                              <Button
+                                size='sm'
+                                variant='ghost'
+                                className='text-destructive h-6 px-2 text-[11px]'
+                                onClick={() => {
+                                  void toggleKey(key.index, true)
+                                }}
+                              >
+                                {t('Disable')}
+                              </Button>
+                            ) : (
+                              <Button
+                                size='sm'
+                                variant='ghost'
+                                className='h-6 px-2 text-[11px]'
+                                onClick={() => {
+                                  void toggleKey(key.index, false)
+                                }}
+                              >
+                                {t('Enable')}
+                              </Button>
+                            )}
                           </td>
                         </tr>
                       ))
@@ -560,6 +642,33 @@ function ConfigCard(props: {
         </div>
       </div>
     </div>
+  )
+}
+
+function SortHeader(props: {
+  label: string
+  active: boolean
+  order: 'asc' | 'desc'
+  align?: 'left' | 'right'
+  onClick: () => void
+}) {
+  return (
+    <button
+      type='button'
+      onClick={props.onClick}
+      className={cn(
+        'inline-flex items-center gap-1 hover:text-foreground transition-colors',
+        props.align === 'right' && 'flex-row-reverse',
+        props.active ? 'text-foreground' : ''
+      )}
+    >
+      {props.label}
+      {props.active ? (
+        <span className='text-[10px]'>{props.order === 'asc' ? '↑' : '↓'}</span>
+      ) : (
+        <ArrowUpDown className='size-3 opacity-40' />
+      )}
+    </button>
   )
 }
 

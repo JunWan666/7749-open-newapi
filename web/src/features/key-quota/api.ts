@@ -52,12 +52,16 @@ export async function getKeyQuotaOverview(): Promise<{
   return res.data
 }
 
+export type KeyQuotaSortKey = 'index' | 'balance' | 'status'
+
 export async function getKeyQuotaKeys(params: {
   channelId: number
   page: number
   pageSize: number
   status: KeyQuotaKeyStatus
   keyword: string
+  sort: KeyQuotaSortKey
+  order: 'asc' | 'desc'
 }): Promise<{ success: boolean; data?: KeyQuotaKeysPage; message?: string }> {
   const res = await api.get(`/api/channel/${params.channelId}/key_quota/keys`, {
     params: {
@@ -65,7 +69,21 @@ export async function getKeyQuotaKeys(params: {
       page_size: params.pageSize,
       status: params.status,
       keyword: params.keyword,
+      sort: params.sort,
+      order: params.order,
     },
+  })
+  return res.data
+}
+
+export async function toggleKeyQuotaKey(
+  channelId: number,
+  index: number,
+  disable: boolean
+): Promise<{ success: boolean; message?: string }> {
+  const res = await api.post(`/api/channel/${channelId}/key_quota/toggle`, {
+    index,
+    disable,
   })
   return res.data
 }

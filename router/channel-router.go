@@ -77,6 +77,7 @@ var channelPermissionRoutes = []permissionRoute{
 	{method: http.MethodGet, path: "/:id/key_quota/keys", permission: authz.ChannelRead, handler: controller.GetKeyQuotaKeys},
 	{method: http.MethodPut, path: "/:id/key_quota/probe", permission: authz.ChannelWrite, handler: controller.UpdateKeyBalanceProbe},
 	{method: http.MethodPost, path: "/:id/key_quota/probe", permission: authz.ChannelOperate, handler: controller.ProbeKeyBalances},
+	{method: http.MethodPost, path: "/:id/key_quota/toggle", permission: authz.ChannelOperate, handler: controller.ToggleKeyQuotaKey},
 	{method: http.MethodPost, path: "/:id/key_quota/reset", permission: authz.ChannelOperate, handler: controller.ResetKeyQuotaGuardNow},
 	{method: http.MethodPost, path: "/upstream_updates/apply", permission: authz.ChannelWrite, handler: controller.ApplyChannelUpstreamModelUpdates},
 	{method: http.MethodPost, path: "/upstream_updates/apply_all", permission: authz.ChannelWrite, handler: controller.ApplyAllChannelUpstreamModelUpdates},
