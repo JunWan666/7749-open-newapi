@@ -47,6 +47,8 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar'
 
+import { cn } from '@/lib/utils'
+
 import { checkIsActive } from '../lib/url-utils'
 import type {
   NavCollapsible,
@@ -113,8 +115,22 @@ export function NavGroup({ title, items }: NavGroupProps) {
 /**
  * Navigation badge component
  */
-function NavBadge({ children }: { children: ReactNode }) {
-  return <Badge className='shrink-0 px-1 py-0 text-xs'>{children}</Badge>
+const NAV_BADGE_STYLES: Record<string, string> = {
+  warning: 'bg-amber-500 text-white hover:bg-amber-500',
+  danger: 'bg-rose-500 text-white hover:bg-rose-500',
+}
+
+function NavBadge(props: { children: ReactNode; variant?: string }) {
+  return (
+    <Badge
+      className={cn(
+        'shrink-0 px-1 py-0 text-xs',
+        NAV_BADGE_STYLES[props.variant ?? 'default'] ?? ''
+      )}
+    >
+      {props.children}
+    </Badge>
+  )
 }
 
 /**
@@ -156,13 +172,22 @@ function SidebarMenuLink({ item, href }: { item: NavLink; href: string }) {
         }
       >
         {item.icon && <item.icon className='shrink-0' />}
-        <span className='min-w-0 flex-1 truncate'>{item.title}</span>
+        <span
+          className={cn(
+            'min-w-0 flex-1 truncate',
+            item.badgeVariant === 'danger' && 'text-rose-600 dark:text-rose-400'
+          )}
+        >
+          {item.title}
+        </span>
         {isEmbed ? (
           <MonitorSmartphone className='ms-auto size-3 shrink-0 opacity-50' />
         ) : isExternal ? (
           <ExternalLink className='ms-auto size-3 shrink-0 opacity-50' />
         ) : (
-          item.badge && <NavBadge>{item.badge}</NavBadge>
+          item.badge && (
+            <NavBadge variant={item.badgeVariant}>{item.badge}</NavBadge>
+          )
         )}
       </SidebarMenuButton>
     </SidebarMenuItem>

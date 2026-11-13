@@ -25,6 +25,8 @@ import { type TFunction } from 'i18next'
 type BaseNavItem = {
   title: string
   badge?: string
+  /** 角标语气：warning（即将过期）/ danger（已过期或缺失） */
+  badgeVariant?: 'default' | 'warning' | 'danger'
   icon?: React.ElementType
   activeUrls?: (LinkProps['to'] | (string & {}))[]
   configUrls?: (LinkProps['to'] | (string & {}))[]

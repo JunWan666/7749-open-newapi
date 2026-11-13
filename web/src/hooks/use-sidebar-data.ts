@@ -16,6 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { useQuery } from '@tanstack/react-query'
 import {
   Activity,
   Box,
@@ -47,8 +48,11 @@ import type {
   NavItem,
   SidebarData,
 } from '@/components/layout/types'
+import { getGroupQrcodeMeta } from '@/features/group-qrcode/api'
 import { useSidebarForkConfig } from '@/hooks/use-sidebar-fork-config'
+import dayjs from '@/lib/dayjs'
 import { ROLE } from '@/lib/roles'
+import { useAuthStore } from '@/stores/auth-store'
 
 /**
  * Root navigation groups for the application sidebar.
@@ -59,6 +63,32 @@ import { ROLE } from '@/lib/roles'
 export function useSidebarData(): SidebarData {
   const { t } = useTranslation()
   const forkSidebar = useSidebarForkConfig()
+  const role = useAuthStore((state) => state.auth.user?.role)
+  const isAdmin = (role ?? 0) >= ROLE.ADMIN
+
+  // 微信群二维码到期提醒：菜单右侧角标（≤3 天黄色，过期/未上传红色）
+  const qrcodeQuery = useQuery({
+    queryKey: ['group-qrcode-sidebar-badge'],
+    queryFn: getGroupQrcodeMeta,
+    enabled: isAdmin,
+    staleTime: 5 * 60 * 1000,
+  })
+  let qrcodeBadge: { text: string; variant: 'warning' | 'danger' } | undefined
+  const qrcodeMeta = qrcodeQuery.data?.data
+  if (isAdmin && qrcodeMeta) {
+    if (!qrcodeMeta.exists) {
+      qrcodeBadge = { text: t('Not uploaded'), variant: 'danger' }
+    } else if (qrcodeMeta.expires_at) {
+      const daysLeft = dayjs(qrcodeMeta.expires_at)
+        .startOf('day')
+        .diff(dayjs().startOf('day'), 'day')
+      if (daysLeft < 0) {
+        qrcodeBadge = { text: t('Expired'), variant: 'danger' }
+      } else if (daysLeft <= 3) {
+        qrcodeBadge = { text: t('{{n}}d', { n: daysLeft }), variant: 'warning' }
+      }
+    }
+  }
 
   // Admin-defined groups (chat presets like AI 生图 keep their {key} auto-fill).
   const forkGroups: NavGroup[] = []
@@ -191,6 +221,8 @@ export function useSidebarData(): SidebarData {
             title: t('WeChat Group QR Code'),
             url: '/group-qrcode',
             icon: QrCode,
+            badge: qrcodeBadge?.text,
+            badgeVariant: qrcodeBadge?.variant,
           },
           {
             title: t('Sidebar Menu'),

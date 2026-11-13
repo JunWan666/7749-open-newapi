@@ -2659,6 +2659,7 @@
     "Uploading...": "上传中…",
     "Upload area": "上传区域",
     "Not uploaded": "未上传",
+    "{{n}}d": "{{n}} 天",
     "No expiry set": "未设置有效期",
     "Expires soon": "即将过期",
     "days left": "天",
