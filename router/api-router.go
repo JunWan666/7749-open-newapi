@@ -222,6 +222,8 @@ func SetApiRouter(router *gin.Engine) {
 		qrcodeRoute.Use(middleware.AdminAuth())
 		{
 			qrcodeRoute.GET("/meta", controller.GetGroupQrcodeMeta)
+			qrcodeRoute.PUT("/meta", controller.UpdateGroupQrcodeMeta)
+			qrcodeRoute.POST("/detect", controller.DetectGroupQrcodeExpiry)
 			qrcodeRoute.POST("", controller.UploadGroupQrcode)
 			qrcodeRoute.DELETE("", controller.DeleteGroupQrcode)
 		}

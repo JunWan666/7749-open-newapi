@@ -45,6 +45,24 @@ export async function uploadGroupQrcode(
   return res.data
 }
 
+export async function updateGroupQrcodeMeta(
+  expiresAt: string
+): Promise<{ success: boolean; message?: string }> {
+  const res = await api.put('/api/option/group-qrcode/meta', {
+    expires_at: expiresAt,
+  })
+  return res.data
+}
+
+export async function detectGroupQrcodeExpiry(): Promise<{
+  success: boolean
+  data?: { expires_at: string; text: string }
+  message?: string
+}> {
+  const res = await api.post('/api/option/group-qrcode/detect', {})
+  return res.data
+}
+
 export async function deleteGroupQrcode(): Promise<{
   success: boolean
   message?: string

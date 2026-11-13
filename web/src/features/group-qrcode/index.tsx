@@ -22,6 +22,8 @@ import {
   CheckCircle2,
   Download,
   ImagePlus,
+  Loader2,
+  Sparkles,
   Trash2,
   ZoomIn,
 } from 'lucide-react'
@@ -39,7 +41,9 @@ import { cn } from '@/lib/utils'
 
 import {
   deleteGroupQrcode,
+  detectGroupQrcodeExpiry,
   getGroupQrcodeMeta,
+  updateGroupQrcodeMeta,
   uploadGroupQrcode,
 } from './api'
 
@@ -68,6 +72,8 @@ export function GroupQrcode() {
   const [expiresAt, setExpiresAt] = useState('')
   const [version, setVersion] = useState(() => Date.now())
   const [busy, setBusy] = useState(false)
+  const [detecting, setDetecting] = useState(false)
+  const [savingMeta, setSavingMeta] = useState(false)
   const [previewError, setPreviewError] = useState(false)
   const [dragOver, setDragOver] = useState(false)
   const [zoom, setZoom] = useState(false)
@@ -78,8 +84,66 @@ export function GroupQrcode() {
     : null
   const expired = daysLeft !== null && daysLeft < 0
   const expiringSoon = daysLeft !== null && daysLeft >= 0 && daysLeft <= 3
+  // 后端已有日期时同步到输入框（用户手动改动不会被覆盖，除非 meta 变化）
+  useEffect(() => {
+    setExpiresAt(meta.expires_at || '')
+  }, [meta.expires_at])
+
   const hasImage = meta.exists && !previewError
   const imageSrc = `/api/group-qrcode?t=${version}`
+
+  // 用视觉模型读取图片底部印的有效期，识别成功自动保存
+  const handleDetect = useCallback(
+    async (silent: boolean) => {
+      setDetecting(true)
+      try {
+        const res = await detectGroupQrcodeExpiry()
+        if (res?.success && res.data?.expires_at) {
+          setExpiresAt(res.data.expires_at)
+          await updateGroupQrcodeMeta(res.data.expires_at)
+          await refetch()
+          toast.success(
+            t('Detected expiry date: {{date}}', { date: res.data.expires_at })
+          )
+          return
+        }
+        if (silent) {
+          toast.warning(
+            t('No expiry date detected on the image, please fill it in manually')
+          )
+        } else {
+          toast.error(
+            res?.message ||
+              t('Could not detect the expiry date, please fill it in manually')
+          )
+        }
+      } catch {
+        if (!silent) {
+          toast.error(t('Could not detect the expiry date, please fill it in manually'))
+        }
+      } finally {
+        setDetecting(false)
+      }
+    },
+    [refetch, t]
+  )
+
+  async function handleSaveMeta() {
+    setSavingMeta(true)
+    try {
+      const res = await updateGroupQrcodeMeta(expiresAt)
+      if (res?.success) {
+        toast.success(t('Saved'))
+        await refetch()
+      } else {
+        toast.error(res?.message || t('Save failed'))
+      }
+    } catch {
+      toast.error(t('Save failed'))
+    } finally {
+      setSavingMeta(false)
+    }
+  }
 
   const handleFile = useCallback(
     async (file: File) => {
@@ -95,6 +159,9 @@ export function GroupQrcode() {
           setVersion(Date.now())
           setPreviewError(false)
           await refetch()
+          if (!expiresAt) {
+            void handleDetect(true)
+          }
         } else {
           toast.error(res?.message || t('Upload failed'))
         }
@@ -104,7 +171,7 @@ export function GroupQrcode() {
         setBusy(false)
       }
     },
-    [expiresAt, refetch, t]
+    [expiresAt, handleDetect, refetch, t]
   )
 
   // Allow pasting a screenshot directly from the clipboard (Ctrl+V).
@@ -295,7 +362,7 @@ export function GroupQrcode() {
                   className='text-sm font-semibold'
                   htmlFor='group-qrcode-expiry'
                 >
-                  {t('Expiry date on the image (optional)')}
+                  {t('Expiry date printed on the image')}
                 </label>
                 <div className='flex flex-wrap items-center gap-2'>
                   <Input
@@ -305,13 +372,46 @@ export function GroupQrcode() {
                     onChange={(event) => setExpiresAt(event.target.value)}
                     className='w-44'
                   />
-                  <span className='text-muted-foreground text-xs'>
-                    {t('Used for the reminder badge')}
-                  </span>
+                  <Button
+                    size='sm'
+                    variant='outline'
+                    disabled={savingMeta || !expiresAt}
+                    onClick={() => {
+                      void handleSaveMeta()
+                    }}
+                  >
+                    {savingMeta && (
+                      <Loader2 className='mr-1 size-3.5 animate-spin' />
+                    )}
+                    {t('Save expiry')}
+                  </Button>
+                  <Button
+                    size='sm'
+                    variant='outline'
+                    disabled={detecting || !meta.exists}
+                    onClick={() => {
+                      void handleDetect(false)
+                    }}
+                  >
+                    {detecting ? (
+                      <Loader2 className='mr-1 size-3.5 animate-spin' />
+                    ) : (
+                      <Sparkles className='mr-1 size-3.5' />
+                    )}
+                    {t('Detect from image')}
+                  </Button>
                 </div>
+                {expiresAt === '' && (
+                  <p className='text-destructive flex items-center gap-1 text-xs'>
+                    <AlertTriangle className='size-3.5 shrink-0' />
+                    {t(
+                      'No expiry date set — you will not get an expiry reminder'
+                    )}
+                  </p>
+                )}
                 <p className='text-muted-foreground text-xs'>
                   {t(
-                    'Paste the date printed on the WeChat QR code, e.g. "valid until Nov 16".'
+                    'Uploading is allowed without a date, but you will not be reminded before it expires. The date is printed on the QR image (e.g. “valid until Nov 20”).'
                   )}
                 </p>
               </div>
