@@ -63,6 +63,43 @@ export async function detectGroupQrcodeExpiry(): Promise<{
   return res.data
 }
 
+export type QrVisionConfig = {
+  channel_id: number
+  model: string
+}
+
+export type QrVisionChannelOption = {
+  id: number
+  name: string
+  models: string[]
+}
+
+export async function getQrVisionConfig(): Promise<{
+  success: boolean
+  data?: { config: QrVisionConfig; channels: QrVisionChannelOption[] }
+}> {
+  const res = await api.get('/api/option/group-qrcode/vision')
+  return res.data
+}
+
+export async function updateQrVisionConfig(
+  config: QrVisionConfig
+): Promise<{ success: boolean; message?: string }> {
+  const res = await api.put('/api/option/group-qrcode/vision', config)
+  return res.data
+}
+
+export async function testQrVisionConfig(
+  config: QrVisionConfig
+): Promise<{
+  success: boolean
+  data?: { text: string; expires_at: string; elapsed_ms: number; model: string }
+  message?: string
+}> {
+  const res = await api.post('/api/option/group-qrcode/vision/test', config)
+  return res.data
+}
+
 export async function deleteGroupQrcode(): Promise<{
   success: boolean
   message?: string

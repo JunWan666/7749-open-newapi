@@ -22,12 +22,65 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// 识别微信群二维码底部的有效期文字所用的视觉模型。
+// 识别微信群二维码底部有效期文字所用的视觉模型（可在后台页面里改）。
 const (
-	qrVisionChannelId = 1
-	qrVisionModel     = "nvidia/nemotron-3.5-super-vl-120b-a12b"
-	qrVisionPrompt    = "请逐字读出这张图片里所有可见的文字，原样输出。如果完全没有文字，只输出 NONE。"
+	qrVisionDefaultChannelId = 1
+	qrVisionDefaultModel     = "nvidia/nemotron-3.5-super-vl-120b-a12b"
+	qrVisionOptionKey        = "fork_setting.qr_vision"
+	qrVisionPrompt           = "请逐字读出这张图片里所有可见的文字，原样输出。如果完全没有文字，只输出 NONE。"
 )
+
+// QrVisionConfig 是「二维码有效期识别」使用的渠道与模型。
+type QrVisionConfig struct {
+	ChannelId int    `json:"channel_id"`
+	Model     string `json:"model"`
+}
+
+func defaultQrVisionConfig() QrVisionConfig {
+	return QrVisionConfig{ChannelId: qrVisionDefaultChannelId, Model: qrVisionDefaultModel}
+}
+
+func loadQrVisionConfig() QrVisionConfig {
+	cfg := defaultQrVisionConfig()
+	options, err := model.AllOption()
+	if err != nil {
+		return cfg
+	}
+	for _, opt := range options {
+		if opt.Key != qrVisionOptionKey || strings.TrimSpace(opt.Value) == "" {
+			continue
+		}
+		var parsed QrVisionConfig
+		if err := common.UnmarshalJsonStr(opt.Value, &parsed); err != nil {
+			return cfg
+		}
+		if parsed.ChannelId > 0 {
+			cfg.ChannelId = parsed.ChannelId
+		}
+		if strings.TrimSpace(parsed.Model) != "" {
+			cfg.Model = strings.TrimSpace(parsed.Model)
+		}
+		return cfg
+	}
+	return cfg
+}
+
+// qrVisionModelOptions 把渠道里的站内模型名转成上游名（去掉渠道前缀）。
+func qrVisionModelOptions(channel *model.Channel) []string {
+	modelsList := strings.Split(channel.Models, ",")
+	options := make([]string, 0, len(modelsList))
+	for _, item := range modelsList {
+		name := strings.TrimSpace(item)
+		if name == "" {
+			continue
+		}
+		if idx := strings.Index(name, "/"); idx >= 0 {
+			name = name[idx+1:]
+		}
+		options = append(options, name)
+	}
+	return options
+}
 
 var (
 	qrDateCN   = regexp.MustCompile(`(\d{1,2})\s*月\s*(\d{1,2})\s*日`)
@@ -85,8 +138,13 @@ func DetectGroupQrcodeExpiry(c *gin.Context) {
 	})
 }
 
-// recognizeQrText 裁剪图片底部区域并放大，再交给视觉模型识别。
+// recognizeQrText 使用当前保存的配置识别。
 func recognizeQrText(path string) (string, error) {
+	return recognizeQrTextWith(path, loadQrVisionConfig())
+}
+
+// recognizeQrTextWith 裁剪图片底部区域并放大，再交给指定视觉模型识别。
+func recognizeQrTextWith(path string, visionCfg QrVisionConfig) (string, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return "", err
@@ -104,7 +162,7 @@ func recognizeQrText(path string) (string, error) {
 	}
 	b64 := base64.StdEncoding.EncodeToString(buf.Bytes())
 
-	channel, err := model.GetChannelById(qrVisionChannelId, true)
+	channel, err := model.GetChannelById(visionCfg.ChannelId, true)
 	if err != nil || channel == nil {
 		return "", fmt.Errorf("找不到识别用的渠道")
 	}
@@ -118,7 +176,7 @@ func recognizeQrText(path string) (string, error) {
 	}
 
 	payload := map[string]interface{}{
-		"model": qrVisionModel,
+		"model": visionCfg.Model,
 		"messages": []map[string]interface{}{
 			{
 				"role": "user",
@@ -211,4 +269,103 @@ func extractExpiryDate(text string) string {
 func atoiSafe(value string) int {
 	parsed, _ := strconv.Atoi(strings.TrimSpace(value))
 	return parsed
+}
+
+// QrVisionChannelOption 是给前端下拉用的渠道与可用模型。
+type QrVisionChannelOption struct {
+	Id     int      `json:"id"`
+	Name   string   `json:"name"`
+	Models []string `json:"models"`
+}
+
+// GetQrVisionConfig 返回当前识别配置以及可选的渠道/模型。
+func GetQrVisionConfig(c *gin.Context) {
+	channels, err := model.GetAllChannels(0, 0, true, false)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	options := make([]QrVisionChannelOption, 0, len(channels))
+	for _, channel := range channels {
+		if channel.Status != common.ChannelStatusEnabled {
+			continue
+		}
+		options = append(options, QrVisionChannelOption{
+			Id:     channel.Id,
+			Name:   channel.Name,
+			Models: qrVisionModelOptions(channel),
+		})
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": gin.H{
+			"config":   loadQrVisionConfig(),
+			"channels": options,
+		},
+	})
+}
+
+// UpdateQrVisionConfig 保存识别使用的渠道与模型。
+func UpdateQrVisionConfig(c *gin.Context) {
+	var req QrVisionConfig
+	if err := common.DecodeJson(c.Request.Body, &req); err != nil {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+	if req.ChannelId <= 0 || strings.TrimSpace(req.Model) == "" {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "请选择渠道与模型"})
+		return
+	}
+	if channel, err := model.GetChannelById(req.ChannelId, true); err != nil || channel == nil {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "渠道不存在"})
+		return
+	}
+	req.Model = strings.TrimSpace(req.Model)
+	raw, err := common.Marshal(req)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	if err := model.UpdateOption(qrVisionOptionKey, string(raw)); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	recordManageAuditFor(c, 0, "site.qr_vision", map[string]interface{}{
+		"channel_id": req.ChannelId,
+		"model":      req.Model,
+	})
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": ""})
+}
+
+// TestQrVisionConfig 用指定（或已保存）的配置试识别当前二维码，便于挑选模型。
+func TestQrVisionConfig(c *gin.Context) {
+	var req QrVisionConfig
+	_ = common.DecodeJson(c.Request.Body, &req)
+	cfg := loadQrVisionConfig()
+	if req.ChannelId > 0 {
+		cfg.ChannelId = req.ChannelId
+	}
+	if strings.TrimSpace(req.Model) != "" {
+		cfg.Model = strings.TrimSpace(req.Model)
+	}
+	path, ok := findGroupQrcode()
+	if !ok {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "还没有上传二维码图片"})
+		return
+	}
+	start := time.Now()
+	text, err := recognizeQrTextWith(path, cfg)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "识别失败：" + err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": gin.H{
+			"text":       strings.TrimSpace(text),
+			"expires_at": extractExpiryDate(text),
+			"elapsed_ms": time.Since(start).Milliseconds(),
+			"model":      cfg.Model,
+		},
+	})
 }

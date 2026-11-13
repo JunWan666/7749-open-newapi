@@ -224,6 +224,9 @@ func SetApiRouter(router *gin.Engine) {
 			qrcodeRoute.GET("/meta", controller.GetGroupQrcodeMeta)
 			qrcodeRoute.PUT("/meta", controller.UpdateGroupQrcodeMeta)
 			qrcodeRoute.POST("/detect", controller.DetectGroupQrcodeExpiry)
+			qrcodeRoute.GET("/vision", controller.GetQrVisionConfig)
+			qrcodeRoute.PUT("/vision", controller.UpdateQrVisionConfig)
+			qrcodeRoute.POST("/vision/test", controller.TestQrVisionConfig)
 			qrcodeRoute.POST("", controller.UploadGroupQrcode)
 			qrcodeRoute.DELETE("", controller.DeleteGroupQrcode)
 		}

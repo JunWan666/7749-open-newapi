@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   AlertTriangle,
   CheckCircle2,
@@ -43,7 +43,10 @@ import {
   deleteGroupQrcode,
   detectGroupQrcodeExpiry,
   getGroupQrcodeMeta,
+  getQrVisionConfig,
+  testQrVisionConfig,
   updateGroupQrcodeMeta,
+  updateQrVisionConfig,
   uploadGroupQrcode,
 } from './api'
 
@@ -416,6 +419,8 @@ export function GroupQrcode() {
                 </p>
               </div>
 
+              <QrVisionSection />
+
               <input
                 ref={inputRef}
                 type='file'
@@ -534,5 +539,168 @@ export function GroupQrcode() {
           document.body
         )}
     </SectionPageLayout>
+  )
+}
+
+/** 识别模型配置：选择渠道与视觉模型，并可直接测试识别效果。 */
+function QrVisionSection() {
+  const { t } = useTranslation()
+  const queryClient = useQueryClient()
+  const { data } = useQuery({
+    queryKey: ['qr-vision-config'],
+    queryFn: getQrVisionConfig,
+    staleTime: 5 * 60 * 1000,
+  })
+  const channels = data?.data?.channels ?? []
+  const [channelId, setChannelId] = useState<number>(0)
+  const [model, setModel] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [testing, setTesting] = useState(false)
+  const [result, setResult] = useState<{
+    text: string
+    expires_at: string
+    elapsed_ms: number
+  } | null>(null)
+
+  const remote = data?.data?.config
+  useEffect(() => {
+    if (remote && channelId === 0) {
+      setChannelId(remote.channel_id)
+      setModel(remote.model)
+    }
+  }, [remote, channelId])
+
+  const activeChannel = channels.find((item) => item.id === channelId)
+  const modelOptions = activeChannel?.models ?? []
+
+  async function handleSave() {
+    if (!channelId || !model) {
+      return
+    }
+    setBusy(true)
+    try {
+      const res = await updateQrVisionConfig({ channel_id: channelId, model })
+      if (res?.success) {
+        toast.success(t('Saved'))
+        await queryClient.invalidateQueries({ queryKey: ['qr-vision-config'] })
+      } else {
+        toast.error(res?.message || t('Save failed'))
+      }
+    } catch {
+      toast.error(t('Save failed'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleTest() {
+    if (!channelId || !model) {
+      return
+    }
+    setTesting(true)
+    setResult(null)
+    try {
+      const res = await testQrVisionConfig({ channel_id: channelId, model })
+      if (res?.success && res.data) {
+        setResult(res.data)
+      } else {
+        toast.error(res?.message || t('Save failed'))
+      }
+    } catch {
+      toast.error(t('Save failed'))
+    } finally {
+      setTesting(false)
+    }
+  }
+
+  const selectClass =
+    'border-input h-8 max-w-[260px] rounded-md border bg-transparent px-2 text-xs outline-none'
+
+  return (
+    <div className='bg-muted/30 flex flex-col gap-2 rounded-lg border border-dashed p-3'>
+      <div className='flex flex-wrap items-center gap-2'>
+        <Sparkles className='text-primary size-3.5' />
+        <span className='text-sm font-semibold'>{t('Recognition model')}</span>
+        <span className='text-muted-foreground text-[11px]'>
+          {t('Used by “Detect from image” to read the printed date')}
+        </span>
+      </div>
+
+      <div className='flex flex-wrap items-center gap-2'>
+        <select
+          value={channelId || ''}
+          onChange={(event) => {
+            const nextId = Number(event.target.value)
+            setChannelId(nextId)
+            const nextChannel = channels.find((item) => item.id === nextId)
+            setModel(nextChannel?.models[0] ?? '')
+            setResult(null)
+          }}
+          className={selectClass}
+        >
+          <option value=''>{t('Select channel')}</option>
+          {channels.map((channel) => (
+            <option key={channel.id} value={channel.id}>
+              {channel.name} #{channel.id}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={model}
+          onChange={(event) => {
+            setModel(event.target.value)
+            setResult(null)
+          }}
+          className={selectClass}
+        >
+          {modelOptions.length === 0 && <option value=''>{t('No models')}</option>}
+          {modelOptions.map((item) => (
+            <option key={item} value={item}>
+              {item}
+            </option>
+          ))}
+        </select>
+
+        <Button
+          size='sm'
+          variant='outline'
+          disabled={busy || !channelId || !model}
+          onClick={() => {
+            void handleSave()
+          }}
+        >
+          {busy && <Loader2 className='mr-1 size-3.5 animate-spin' />}
+          {t('Save')}
+        </Button>
+        <Button
+          size='sm'
+          variant='outline'
+          disabled={testing || !channelId || !model}
+          onClick={() => {
+            void handleTest()
+          }}
+        >
+          {testing ? (
+            <Loader2 className='mr-1 size-3.5 animate-spin' />
+          ) : (
+            <Sparkles className='mr-1 size-3.5' />
+          )}
+          {t('Test recognition')}
+        </Button>
+      </div>
+
+      {result && (
+        <div className='rounded-md border bg-background px-2 py-1.5 text-[11px]'>
+          <span className='text-muted-foreground'>{t('Detected text')}: </span>
+          <span className='font-mono'>{result.text || 'NONE'}</span>
+          <span className='text-muted-foreground'> → </span>
+          <span className='font-semibold'>
+            {result.expires_at || t('No date found')}
+          </span>
+          <span className='text-muted-foreground'> ({result.elapsed_ms}ms)</span>
+        </div>
+      )}
+    </div>
   )
 }
