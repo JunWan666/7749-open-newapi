@@ -14,7 +14,6 @@ import (
 
 // UserModelLimitUsage 是某条规则下今日用量最高的用户。
 type UserModelLimitUsage struct {
-	RuleLabel string `json:"rule_label"`
 	RuleIndex int    `json:"rule_index"`
 	UserId    int    `json:"user_id"`
 	Username  string `json:"username"`
@@ -28,7 +27,13 @@ type userModelLimitChannelOption struct {
 	Models []string `json:"models"`
 }
 
-// GetUserModelLimitConfig 返回限额配置、可选渠道/模型和今日用量。
+// exemptUserView 是豁免用户的展示信息（ID + 用户名）。
+type exemptUserView struct {
+	Id       int    `json:"id"`
+	Username string `json:"username"`
+}
+
+// GetUserModelLimitConfig 返回限额配置、可选渠道/模型和今日用量（分页）。
 func GetUserModelLimitConfig(c *gin.Context) {
 	cfg := service.LoadUserModelLimitConfig()
 
@@ -49,14 +54,58 @@ func GetUserModelLimitConfig(c *gin.Context) {
 		})
 	}
 
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	if page < 1 {
+		page = 1
+	}
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
+	if pageSize < 1 || pageSize > 200 {
+		pageSize = 20
+	}
+	channelNames := make(map[int]string, len(options))
+	for _, option := range options {
+		channelNames[option.Id] = option.Name
+	}
+	usage, total := buildUserModelLimitUsage(cfg, channelNames, page, pageSize)
+
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data": gin.H{
-			"config":   cfg,
-			"channels": options,
-			"usage":    buildUserModelLimitUsage(cfg),
+			"config":              cfg,
+			"channels":            options,
+			"exempt_users_detail": loadExemptUserViews(cfg.ExemptUsers),
+			"usage_rules":         usage,
+			"usage_total":         total,
+			"usage_page":          page,
+			"usage_page_size":     pageSize,
 		},
 	})
+}
+
+// loadExemptUserViews 把豁免用户 ID 转成「ID + 用户名」。
+func loadExemptUserViews(ids []int) []exemptUserView {
+	views := make([]exemptUserView, 0, len(ids))
+	if len(ids) == 0 {
+		return views
+	}
+	var rows []struct {
+		Id       int    `gorm:"column:id"`
+		Username string `gorm:"column:username"`
+	}
+	if err := model.DB.Table("users").Select("id, username").Where("id IN ?", ids).Scan(&rows).Error; err != nil {
+		for _, id := range ids {
+			views = append(views, exemptUserView{Id: id, Username: ""})
+		}
+		return views
+	}
+	nameById := make(map[int]string, len(rows))
+	for _, row := range rows {
+		nameById[row.Id] = row.Username
+	}
+	for _, id := range ids {
+		views = append(views, exemptUserView{Id: id, Username: nameById[id]})
+	}
+	return views
 }
 
 func splitChannelModels(raw string) []string {
@@ -71,43 +120,66 @@ func splitChannelModels(raw string) []string {
 	return result
 }
 
-func buildUserModelLimitUsage(cfg service.UserModelLimitConfig) []UserModelLimitUsage {
-	result := make([]UserModelLimitUsage, 0, len(cfg.Rules)*5)
+// UserLimitRuleUsage 是一条规则（渠道/模型）下的今日用量，按规则分组展示。
+type UserLimitRuleUsage struct {
+	RuleIndex   int                   `json:"rule_index"`
+	ChannelId   int                   `json:"channel_id"`
+	ChannelName string                `json:"channel_name"`
+	Model       string                `json:"model"`
+	Limit       int                   `json:"limit"`
+	UserCount   int                   `json:"user_count"`
+	Users       []UserModelLimitUsage `json:"users"`
+}
+
+func buildUserModelLimitUsage(cfg service.UserModelLimitConfig, channelNames map[int]string, page, pageSize int) ([]UserLimitRuleUsage, int) {
+	groups := make([]UserLimitRuleUsage, 0, len(cfg.Rules))
 	if !cfg.Enabled {
-		return result
+		return groups, 0
 	}
-	start := service.TodayStartUnix()
+	dayStart := service.TodayStartUnix()
 	for index, rule := range cfg.Rules {
 		if rule.DailyCalls <= 0 {
 			continue
 		}
-		label := rule.Model
-		query := model.DB.Table("quota_data").
-			Select("user_id, username, coalesce(sum(count), 0) as calls").
-			Where("created_at >= ?", start)
+		base := model.DB.Table("quota_data").Where("created_at >= ?", dayStart)
 		if rule.Model != "" {
-			query = query.Where("model_name = ?", rule.Model)
+			base = base.Where("model_name = ?", rule.Model)
 		} else if rule.ChannelId > 0 {
-			query = query.Where("channel_id = ?", rule.ChannelId)
-			label = "渠道 #" + strconv.Itoa(rule.ChannelId)
+			base = base.Where("channel_id = ?", rule.ChannelId)
 		} else {
 			continue
 		}
+
+		// 该规则今日有多少用户用过
+		var userCount int64
+		countQuery := model.DB.Table("quota_data").
+			Select("count(distinct user_id)").
+			Where("created_at >= ?", dayStart)
+		if rule.Model != "" {
+			countQuery = countQuery.Where("model_name = ?", rule.Model)
+		} else {
+			countQuery = countQuery.Where("channel_id = ?", rule.ChannelId)
+		}
+		countQuery.Scan(&userCount)
+
 		var rows []struct {
 			UserId   int    `gorm:"column:user_id"`
 			Username string `gorm:"column:username"`
 			Calls    int64  `gorm:"column:calls"`
 		}
-		if err := query.Group("user_id, username").Order("calls DESC").Limit(20).Scan(&rows).Error; err != nil {
-			continue
-		}
+		base.Select("user_id, username, coalesce(sum(count), 0) as calls").
+			Group("user_id, username").
+			Order("calls DESC").
+			Limit(30).
+			Scan(&rows)
+
+		users := make([]UserModelLimitUsage, 0, len(rows))
 		for _, row := range rows {
 			username := row.Username
 			if username == "" {
 				username = "#" + strconv.Itoa(row.UserId)
 			}
-			result = append(result, UserModelLimitUsage{
-				RuleLabel: label,
+			users = append(users, UserModelLimitUsage{
 				RuleIndex: index,
 				UserId:    row.UserId,
 				Username:  username,
@@ -115,8 +187,28 @@ func buildUserModelLimitUsage(cfg service.UserModelLimitConfig) []UserModelLimit
 				Limit:     rule.DailyCalls,
 			})
 		}
+
+		groups = append(groups, UserLimitRuleUsage{
+			RuleIndex:   index,
+			ChannelId:   rule.ChannelId,
+			ChannelName: channelNames[rule.ChannelId],
+			Model:       rule.Model,
+			Limit:       rule.DailyCalls,
+			UserCount:   int(userCount),
+			Users:       users,
+		})
 	}
-	return result
+
+	total := len(groups)
+	pageStart := (page - 1) * pageSize
+	if pageStart > total {
+		pageStart = total
+	}
+	pageEnd := pageStart + pageSize
+	if pageEnd > total {
+		pageEnd = total
+	}
+	return groups[pageStart:pageEnd], total
 }
 
 // UpdateUserModelLimitConfig 保存限额配置（管理员）。

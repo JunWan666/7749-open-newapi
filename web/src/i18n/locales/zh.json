@@ -581,6 +581,7 @@
     "Saving…": "保存中…",
     "Balance total": "余额合计",
     "Daily Call Limit": "每日调用限额",
+    "users": "人",
     "Enable daily call limit": "启用每日调用限额",
     "Each user gets a per-day call cap on the configured models or channels. Root and exempt users are not limited.": "每个用户对指定模型或渠道有单日调用次数上限；管理员与豁免用户不受限制。",
     "Add rule": "添加规则",

@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Plus, Save, Search, Trash2, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, Save, Search, Trash2, X } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -33,17 +33,22 @@ export function UserLimitPage() {
   const [results, setResults] = useState<
     { id: number; username: string }[]
   >([])
+  const [usagePage, setUsagePage] = useState(1)
 
   const { data, isLoading } = useQuery({
-    queryKey: ['user-limit-config'],
-    queryFn: getUserLimitConfig,
+    queryKey: ['user-limit-config', usagePage],
+    queryFn: () => getUserLimitConfig(usagePage, 20),
     staleTime: 0,
     refetchInterval: 60_000,
   })
 
   const config: UserLimitConfig | null = draft ?? data?.data?.config ?? null
   const channels = data?.data?.channels ?? []
-  const usage = data?.data?.usage ?? []
+  const usageRules = data?.data?.usage_rules ?? []
+  const exemptDetail = data?.data?.exempt_users_detail ?? []
+  const usageTotal = data?.data?.usage_total ?? 0
+  const usagePageSize = data?.data?.usage_page_size ?? 20
+  const usageTotalPages = Math.max(1, Math.ceil(usageTotal / usagePageSize))
 
   function patchConfig(patch: Partial<UserLimitConfig>) {
     if (!config) {
@@ -264,83 +269,159 @@ export function UserLimitPage() {
                     {t('No exempt users')}
                   </span>
                 ) : (
-                  config.exempt_users.map((id) => (
-                    <span
-                      key={id}
-                      className='inline-flex items-center gap-1 rounded-md border bg-muted/40 px-2 py-1 text-[11px]'
-                    >
-                      #{id}
-                      <button
-                        type='button'
-                        aria-label={t('Remove')}
-                        onClick={() => removeExempt(id)}
+                  config.exempt_users.map((id) => {
+                    const name = exemptDetail.find((item) => item.id === id)
+                      ?.username
+                    return (
+                      <span
+                        key={id}
+                        className='inline-flex items-center gap-1 rounded-md border bg-muted/40 px-2 py-1 text-[11px]'
                       >
-                        <X className='size-3' />
-                      </button>
-                    </span>
-                  ))
+                        {name ? `${name} #${id}` : `#${id}`}
+                        <button
+                          type='button'
+                          aria-label={t('Remove')}
+                          onClick={() => removeExempt(id)}
+                        >
+                          <X className='size-3' />
+                        </button>
+                      </span>
+                    )
+                  })
                 )}
               </div>
             </div>
 
             <div className='bg-card overflow-hidden rounded-xl border shadow-sm'>
-              <div className='border-b px-4 py-2 text-sm font-semibold'>
-                {t('Today usage')}
+              <div className='flex flex-wrap items-center justify-between gap-2 border-b px-4 py-2'>
+                <div className='text-sm font-semibold'>{t('Today usage')}</div>
+                <span className='text-muted-foreground text-[11px]'>
+                  {t('Total')}: {usageTotal} · {usagePage}/{usageTotalPages}
+                </span>
               </div>
-              <div className='overflow-x-auto'>
-                <table className='w-full min-w-[560px] text-xs'>
-                  <thead>
-                    <tr className='bg-muted/40 text-muted-foreground border-b text-[11px]'>
-                      <th className='px-3 py-2 text-left font-medium'>
-                        {t('Rule')}
-                      </th>
-                      <th className='px-3 py-2 text-left font-medium'>
-                        {t('User')}
-                      </th>
-                      <th className='px-3 py-2 text-right font-medium'>
-                        {t('Calls today')}
-                      </th>
-                      <th className='px-3 py-2 text-right font-medium'>
-                        {t('Limit')}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className='divide-y'>
-                    {usage.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan={4}
-                          className='text-muted-foreground px-3 py-6 text-center'
-                        >
-                          {t('No usage yet')}
-                        </td>
-                      </tr>
-                    ) : (
-                      usage.map((row, index) => (
-                        <tr
-                          key={`${row.rule_index}-${row.user_id}-${index}`}
-                          className='hover:bg-muted/30'
-                        >
-                          <td className='text-muted-foreground px-3 py-1.5 font-mono'>
-                            {row.rule_label}
-                          </td>
-                          <td className='px-3 py-1.5'>{row.username}</td>
-                          <td
-                            className={cn(
-                              'px-3 py-1.5 text-right tabular-nums',
-                              row.calls >= row.limit && 'text-destructive font-semibold'
+
+              {usageRules.length === 0 ? (
+                <div className='text-muted-foreground px-6 py-10 text-center text-sm'>
+                  {t('No usage yet')}
+                </div>
+              ) : (
+                <div className='flex flex-col divide-y'>
+                  {usageRules.map((group) => (
+                    <div
+                      key={`rule-${group.rule_index}`}
+                      className='flex flex-col gap-2 p-3'
+                    >
+                      <div className='flex flex-wrap items-center justify-between gap-2'>
+                        <div className='flex items-baseline gap-1.5 text-sm font-semibold'>
+                          <span>
+                            {group.channel_name || `#${group.channel_id}`}
+                          </span>
+                          <span className='text-muted-foreground font-normal'>
+                            ·
+                          </span>
+                          <span className='font-mono text-xs'>
+                            {group.model || t('Whole channel')}
+                          </span>
+                        </div>
+                        <span className='text-muted-foreground text-[11px]'>
+                          {t('Limit')}: {group.limit.toLocaleString()} ·{' '}
+                          {group.user_count} {t('users')}
+                        </span>
+                      </div>
+
+                      <div className='overflow-x-auto rounded-lg border'>
+                        <table className='w-full min-w-[420px] text-xs'>
+                          <thead>
+                            <tr className='bg-muted/40 text-muted-foreground border-b text-[11px]'>
+                              <th className='w-12 px-3 py-1.5 text-left font-medium'>
+                                #
+                              </th>
+                              <th className='px-3 py-1.5 text-left font-medium'>
+                                {t('User')}
+                              </th>
+                              <th className='px-3 py-1.5 text-right font-medium'>
+                                {t('Calls today')}
+                              </th>
+                              <th className='px-3 py-1.5 text-right font-medium'>
+                                {t('Limit')}
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className='divide-y'>
+                            {group.users.length === 0 ? (
+                              <tr>
+                                <td
+                                  colSpan={4}
+                                  className='text-muted-foreground px-3 py-4 text-center'
+                                >
+                                  {t('No usage yet')}
+                                </td>
+                              </tr>
+                            ) : (
+                              group.users.map((row, index) => (
+                                <tr
+                                  key={`${group.rule_index}-${row.user_id}`}
+                                  className='hover:bg-muted/30'
+                                >
+                                  <td className='text-muted-foreground px-3 py-1.5 tabular-nums'>
+                                    {index + 1}
+                                  </td>
+                                  <td className='px-3 py-1.5'>
+                                    {row.username}
+                                  </td>
+                                  <td
+                                    className={cn(
+                                      'px-3 py-1.5 text-right tabular-nums',
+                                      row.calls >= row.limit &&
+                                        'text-destructive font-semibold'
+                                    )}
+                                  >
+                                    {row.calls.toLocaleString()}
+                                  </td>
+                                  <td className='text-muted-foreground px-3 py-1.5 text-right tabular-nums'>
+                                    {row.limit.toLocaleString()}
+                                  </td>
+                                </tr>
+                              ))
                             )}
-                          >
-                            {row.calls.toLocaleString()}
-                          </td>
-                          <td className='text-muted-foreground px-3 py-1.5 text-right tabular-nums'>
-                            {row.limit.toLocaleString()}
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className='flex flex-wrap items-center justify-between gap-2 border-t px-3 py-2'>
+                <span className='text-muted-foreground text-[11px]'>
+                  {usagePage}/{usageTotalPages}
+                </span>
+                <div className='flex items-center gap-1'>
+                  <Button
+                    size='sm'
+                    variant='outline'
+                    className='h-7'
+                    disabled={usagePage <= 1}
+                    onClick={() =>
+                      setUsagePage((value) => Math.max(1, value - 1))
+                    }
+                  >
+                    <ChevronLeft className='size-3.5' />
+                  </Button>
+                  <Button
+                    size='sm'
+                    variant='outline'
+                    className='h-7'
+                    disabled={usagePage >= usageTotalPages}
+                    onClick={() =>
+                      setUsagePage((value) =>
+                        Math.min(usageTotalPages, value + 1)
+                      )
+                    }
+                  >
+                    <ChevronRight className='size-3.5' />
+                  </Button>
+                </div>
               </div>
             </div>
           </div>

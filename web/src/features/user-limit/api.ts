@@ -20,7 +20,6 @@ export type UserLimitChannel = {
 }
 
 export type UserLimitUsage = {
-  rule_label: string
   rule_index: number
   user_id: number
   username: string
@@ -28,16 +27,40 @@ export type UserLimitUsage = {
   limit: number
 }
 
-export async function getUserLimitConfig(): Promise<{
+export type UserLimitRuleUsage = {
+  rule_index: number
+  channel_id: number
+  channel_name: string
+  model: string
+  limit: number
+  user_count: number
+  users: UserLimitUsage[]
+}
+
+export type ExemptUserView = {
+  id: number
+  username: string
+}
+
+export async function getUserLimitConfig(
+  page = 1,
+  pageSize = 20
+): Promise<{
   success: boolean
   data?: {
     config: UserLimitConfig
     channels: UserLimitChannel[]
-    usage: UserLimitUsage[]
+    exempt_users_detail: ExemptUserView[]
+    usage_rules: UserLimitRuleUsage[]
+    usage_total: number
+    usage_page: number
+    usage_page_size: number
   }
   message?: string
 }> {
-  const res = await api.get('/api/option/user-model-limit')
+  const res = await api.get('/api/option/user-model-limit', {
+    params: { page, page_size: pageSize },
+  })
   return res.data
 }
 
