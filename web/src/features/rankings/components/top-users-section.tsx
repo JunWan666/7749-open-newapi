@@ -197,24 +197,33 @@ export function TopUsersSection() {
             <thead className='bg-muted/40 text-muted-foreground sticky top-0 text-[11px]'>
               <tr>
                 <th className='px-3 py-2 text-left font-medium'>{t('Model')}</th>
-                <th className='px-3 py-2 text-right font-medium'>{t('calls')}</th>
-                <th className='px-3 py-2 text-right font-medium'>{t('Total spend')}</th>
-                <th className='px-3 py-2 text-right font-medium'>Tokens</th>
+                <th className='w-24 px-3 py-2 text-right font-medium whitespace-nowrap'>
+                  {t('Calls')}
+                </th>
+                <th className='w-24 px-3 py-2 text-right font-medium whitespace-nowrap'>
+                  {t('Total spend')}
+                </th>
+                <th className='w-28 px-3 py-2 text-right font-medium whitespace-nowrap'>
+                  Tokens
+                </th>
               </tr>
             </thead>
             <tbody className='divide-y'>
               {detail.rows.map((item) => (
-                <tr key={item.model} className='hover:bg-muted/30'>
-                  <td className='max-w-[240px] truncate px-3 py-1.5 font-mono' title={item.model}>
-                    {item.model}
+                <tr key={item.model || 'empty'} className='hover:bg-muted/30'>
+                  <td
+                    className='max-w-[280px] truncate px-3 py-1.5 font-mono'
+                    title={item.model}
+                  >
+                    {item.model || t('Unknown model')}
                   </td>
-                  <td className='px-3 py-1.5 text-right tabular-nums'>
+                  <td className='px-3 py-1.5 text-right tabular-nums whitespace-nowrap'>
                     {item.calls.toLocaleString()}
                   </td>
-                  <td className='text-muted-foreground px-3 py-1.5 text-right tabular-nums'>
+                  <td className='text-muted-foreground px-3 py-1.5 text-right tabular-nums whitespace-nowrap'>
                     {formatMoney(item.quota)}
                   </td>
-                  <td className='text-muted-foreground px-3 py-1.5 text-right tabular-nums'>
+                  <td className='text-muted-foreground px-3 py-1.5 text-right tabular-nums whitespace-nowrap'>
                     {formatTokens(item.tokens)}
                   </td>
                 </tr>
@@ -360,7 +369,7 @@ export function TopUsersSection() {
           }
         }}
       >
-        <DialogContent className='max-w-2xl'>
+        <DialogContent className='max-w-3xl'>
           <DialogHeader>
             <DialogTitle>{detailUser}</DialogTitle>
             <DialogDescription>

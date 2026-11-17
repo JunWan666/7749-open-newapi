@@ -2623,6 +2623,7 @@
     "Total calls": "总调用次数",
     "Model Ranking": "模型排行",
     "Model usage in the selected period": "该时段的模型使用情况",
+    "Unknown model": "未知模型",
     "Calls shown here are grouped by model for the selected period.": "这里的调用次数按模型分组统计（与上方榜单同源）。",
     "Models used in this period, ranked automatically": "本期使用的模型，自动排序",
     "By calls": "按次数",
