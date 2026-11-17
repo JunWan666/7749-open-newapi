@@ -8,6 +8,7 @@ import { SectionPageLayout } from '@/components/layout'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
 
@@ -59,6 +60,9 @@ export function UserLimitPage() {
   }, [usageRules])
   const [usageChannel, setUsageChannel] = useState<number | null>(null)
   const [rulePages, setRulePages] = useState<Record<number, number>>({})
+  const [activeTab, setActiveTab] = useState<'rules' | 'exempt' | 'usage'>(
+    'rules'
+  )
   const currentChannelId = usageChannel ?? usageChannels[0]?.id ?? null
   const currentRules = usageRules.filter(
     (group) => group.channel_id === currentChannelId
@@ -183,8 +187,19 @@ export function UserLimitPage() {
         {isLoading || !config ? (
           <Skeleton className='h-80 w-full rounded-xl' />
         ) : (
-          <div className='grid w-full gap-4 xl:grid-cols-[minmax(0,400px)_minmax(0,1fr)]'>
-            <div className='flex flex-col gap-4'>
+          <Tabs
+            value={activeTab}
+            onValueChange={(value) =>
+              setActiveTab(value as 'rules' | 'exempt' | 'usage')
+            }
+          >
+            <TabsList className='grid w-full max-w-md grid-cols-3'>
+              <TabsTrigger value='rules'>{t('Rules')}</TabsTrigger>
+              <TabsTrigger value='exempt'>{t('Exempt users')}</TabsTrigger>
+              <TabsTrigger value='usage'>{t('Today usage')}</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value='rules' className='mt-4 flex flex-col gap-4'>
             <div className='bg-card flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4 shadow-sm'>
               <div>
                 <div className='text-sm font-semibold'>
@@ -230,6 +245,9 @@ export function UserLimitPage() {
               )}
             </div>
 
+            </TabsContent>
+
+            <TabsContent value='exempt' className='mt-4'>
             <div className='bg-card flex flex-col gap-3 rounded-xl border p-4 shadow-sm'>
               <div className='text-sm font-semibold'>
                 {t('Exempt users')}
@@ -307,9 +325,9 @@ export function UserLimitPage() {
               </div>
             </div>
 
-            </div>
+            </TabsContent>
 
-            <div className='flex flex-col gap-4'>
+            <TabsContent value='usage' className='mt-4'>
             <div className='bg-card flex flex-col overflow-hidden rounded-xl border shadow-sm'>
               <div className='flex flex-wrap items-center justify-between gap-2 border-b px-4 py-2'>
                 <div className='text-sm font-semibold'>{t('Today usage')}</div>
@@ -472,8 +490,8 @@ export function UserLimitPage() {
                 )}
               </div>
             </div>
-            </div>
-          </div>
+          </TabsContent>
+        </Tabs>
         )}
       </SectionPageLayout.Content>
     </SectionPageLayout>
