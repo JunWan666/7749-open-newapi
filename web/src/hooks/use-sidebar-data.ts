@@ -24,6 +24,7 @@ import {
   FileText,
   FlaskConical,
   Gamepad2,
+  Gauge,
   Key,
   LayoutDashboard,
   ListTodo,
@@ -233,6 +234,11 @@ export function useSidebarData(): SidebarData {
             title: t('Key Quota Guard'),
             url: '/key-quota',
             icon: ShieldCheck,
+          },
+          {
+            title: t('Daily Call Limit'),
+            url: '/user-limit',
+            icon: Gauge,
           },
           {
             title: t('Subscriptions'),

@@ -450,6 +450,10 @@ func SetupContextForSelectedChannel(c *gin.Context, channel *model.Channel, mode
 	if channel == nil {
 		return types.NewError(errors.New("channel is nil"), types.ErrorCodeGetChannelFailed, types.ErrOptionWithSkipRetry())
 	}
+	// fork: 单用户每日调用次数限制（可按模型或整渠道），超限直接拒绝且不重试
+	if limitErr := service.CheckUserModelDailyLimit(c.GetInt("id"), c.GetInt("role"), modelName, channel.Id); limitErr != nil {
+		return types.NewError(limitErr, types.ErrorCodeAccessDenied, types.ErrOptionWithSkipRetry())
+	}
 	common.SetContextKey(c, constant.ContextKeyChannelId, channel.Id)
 	common.SetContextKey(c, constant.ContextKeyChannelName, channel.Name)
 	common.SetContextKey(c, constant.ContextKeyChannelType, channel.Type)

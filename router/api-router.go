@@ -209,6 +209,14 @@ func SetApiRouter(router *gin.Engine) {
 			noticeConfigRoute.PUT("", controller.UpdateNoticeConfig)
 		}
 
+		// 单用户每日调用限额：管理员可编辑
+		userModelLimitRoute := apiRouter.Group("/option/user-model-limit")
+		userModelLimitRoute.Use(middleware.AdminAuth())
+		{
+			userModelLimitRoute.GET("", controller.GetUserModelLimitConfig)
+			userModelLimitRoute.PUT("", controller.UpdateUserModelLimitConfig)
+		}
+
 		// 侧边栏菜单配置：管理员可编辑
 		sidebarConfigRoute := apiRouter.Group("/option/sidebar-config")
 		sidebarConfigRoute.Use(middleware.AdminAuth())
