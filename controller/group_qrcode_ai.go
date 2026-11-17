@@ -190,9 +190,6 @@ func qrVisionCall(src image.Image, visionCfg QrVisionConfig, ratio float64, scal
 	if err := png.Encode(&buf, cropped); err != nil {
 		return "", err
 	}
-	// 调试：把实际发给模型的图落到磁盘，便于比对（容器内 /tmp）
-	debugPath := fmt.Sprintf("/tmp/qr_debug_%.2f_%d.png", ratio, scale)
-	_ = os.WriteFile(debugPath, buf.Bytes(), 0o644)
 	b64 := base64.StdEncoding.EncodeToString(buf.Bytes())
 
 	channel, err := model.GetChannelById(visionCfg.ChannelId, true)
