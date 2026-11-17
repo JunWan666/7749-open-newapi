@@ -17,17 +17,11 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useQuery } from '@tanstack/react-query'
+import { useNavigate } from '@tanstack/react-router'
 import { CalendarRange, ChevronRight, Crown, Users } from 'lucide-react'
 import { useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
 import dayjs from '@/lib/dayjs'
 import { cn } from '@/lib/utils'
@@ -45,32 +39,6 @@ type TopUsersResponse = {
 }
 
 const DAY_OPTIONS = [1, 7, 30] as const
-
-type UserDetailRow = {
-  model: string
-  calls: number
-  quota: number
-  tokens: number
-}
-
-type UserDetail = {
-  user: string
-  days: number
-  total_calls: number
-  total_quota: number
-  total_tokens: number
-  rows: UserDetailRow[]
-}
-
-async function fetchUserDetail(user: string, days: number): Promise<UserDetail> {
-  const res = await fetch(
-    `/rank-api/api/user_detail?user=${encodeURIComponent(user)}&days=${days}`
-  )
-  if (!res.ok) {
-    throw new Error(`HTTP ${res.status}`)
-  }
-  return (await res.json()) as UserDetail
-}
 
 async function fetchTopUsers(days: number): Promise<TopUsersResponse> {
   const res = await fetch(`/rank-api/api/top_users?days=${days}`)
@@ -118,16 +86,9 @@ const MEDAL_COUNT = MEDAL_COLORS.length
 
 export function TopUsersSection() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   // Default to 近 1 天, matching the platform ranking tab.
   const [days, setDays] = useState<number>(1)
-  const [detailUser, setDetailUser] = useState<string | null>(null)
-
-  const detailQuery = useQuery({
-    queryKey: ['rank-api', 'user-detail', detailUser, days],
-    queryFn: () => fetchUserDetail(String(detailUser), days),
-    enabled: Boolean(detailUser),
-    staleTime: 60_000,
-  })
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['rank-api', 'top-users', days],
@@ -166,75 +127,6 @@ export function TopUsersSection() {
       <span className='text-muted-foreground flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold'>
         {index + 1}
       </span>
-    )
-  }
-
-  function renderDetail(): ReactNode {
-    if (detailQuery.isLoading) {
-      return <Skeleton className='h-64 w-full rounded-lg' />
-    }
-    const detail = detailQuery.data
-    if (!detail) {
-      return (
-        <div className='text-muted-foreground py-8 text-center text-sm'>
-          {t('No data for this period')}
-        </div>
-      )
-    }
-    return (
-      <div className='flex flex-col gap-3'>
-        <div className='grid grid-cols-3 gap-2'>
-          <StatCard
-            label={t('Total calls')}
-            value={detail.total_calls.toLocaleString()}
-          />
-          <StatCard label={t('Total spend')} value={formatMoney(detail.total_quota)} />
-          <StatCard label={t('Tokens')} value={formatTokens(detail.total_tokens)} />
-        </div>
-
-        <div className='max-h-[45vh] overflow-y-auto rounded-lg border'>
-          <table className='w-full text-xs'>
-            <thead className='bg-muted/40 text-muted-foreground sticky top-0 text-[11px]'>
-              <tr>
-                <th className='px-3 py-2 text-left font-medium'>{t('Model')}</th>
-                <th className='w-24 px-3 py-2 text-right font-medium whitespace-nowrap'>
-                  {t('Calls')}
-                </th>
-                <th className='w-24 px-3 py-2 text-right font-medium whitespace-nowrap'>
-                  {t('Total spend')}
-                </th>
-                <th className='w-28 px-3 py-2 text-right font-medium whitespace-nowrap'>
-                  Tokens
-                </th>
-              </tr>
-            </thead>
-            <tbody className='divide-y'>
-              {detail.rows.map((item) => (
-                <tr key={item.model || 'empty'} className='hover:bg-muted/30'>
-                  <td
-                    className='max-w-[280px] truncate px-3 py-1.5 font-mono'
-                    title={item.model}
-                  >
-                    {item.model || t('Unknown model')}
-                  </td>
-                  <td className='px-3 py-1.5 text-right tabular-nums whitespace-nowrap'>
-                    {item.calls.toLocaleString()}
-                  </td>
-                  <td className='text-muted-foreground px-3 py-1.5 text-right tabular-nums whitespace-nowrap'>
-                    {formatMoney(item.quota)}
-                  </td>
-                  <td className='text-muted-foreground px-3 py-1.5 text-right tabular-nums whitespace-nowrap'>
-                    {formatTokens(item.tokens)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <p className='text-muted-foreground text-[11px]'>
-          {t('Calls shown here are grouped by model for the selected period.')}
-        </p>
-      </div>
     )
   }
 
@@ -282,10 +174,18 @@ export function TopUsersSection() {
               key={row.user}
               role='button'
               tabIndex={0}
-              onClick={() => setDetailUser(row.user)}
+              onClick={() =>
+                navigate({
+                  to: '/rankings/user',
+                  search: { user: row.user, days },
+                })
+              }
               onKeyDown={(event) => {
                 if (event.key === 'Enter') {
-                  setDetailUser(row.user)
+                  navigate({
+                    to: '/rankings/user',
+                    search: { user: row.user, days },
+                  })
                 }
               }}
               className='hover:bg-muted/40 flex cursor-pointer items-center gap-3 px-3 py-3 transition-colors sm:px-4'
@@ -361,24 +261,6 @@ export function TopUsersSection() {
 
       {renderBody()}
 
-      <Dialog
-        open={detailUser !== null}
-        onOpenChange={(open) => {
-          if (!open) {
-            setDetailUser(null)
-          }
-        }}
-      >
-        <DialogContent className='max-w-3xl'>
-          <DialogHeader>
-            <DialogTitle>{detailUser}</DialogTitle>
-            <DialogDescription>
-              {t('Model usage in the selected period')}
-            </DialogDescription>
-          </DialogHeader>
-          {renderDetail()}
-        </DialogContent>
-      </Dialog>
     </section>
   )
 }
