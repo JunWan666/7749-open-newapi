@@ -3,7 +3,6 @@ package controller
 import (
 	"bytes"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"image"
 	_ "image/jpeg"
@@ -143,7 +142,10 @@ func recognizeQrText(path string) (string, error) {
 	return recognizeQrTextWith(path, loadQrVisionConfig())
 }
 
-// recognizeQrTextWith 裁剪图片底部区域并放大，再交给指定视觉模型识别。
+// recognizeQrTextWith 裁剪图片底部区域并放大后交给视觉模型识别。
+//
+// 不同来源的微信卡片排版不一样（有效期文字有的在 90% 处、有的在 80% 处），
+// 所以依次尝试两组裁剪参数，任一组能解析出日期就返回。
 func recognizeQrTextWith(path string, visionCfg QrVisionConfig) (string, error) {
 	file, err := os.Open(path)
 	if err != nil {
@@ -154,8 +156,36 @@ func recognizeQrTextWith(path string, visionCfg QrVisionConfig) (string, error) 
 	if err != nil {
 		return "", fmt.Errorf("图片解码失败")
 	}
-	// 有效期文字在图片底部；整图直接喂给模型会因缩放而糊掉
-	cropped := cropAndScale(src, 0.86, 2)
+
+	attempts := []struct {
+		ratio float64
+		scale int
+	}{
+		{0.55, 4},
+		{0.85, 2},
+	}
+	var lastText string
+	var lastErr error
+	for _, attempt := range attempts {
+		text, callErr := qrVisionCall(src, visionCfg, attempt.ratio, attempt.scale)
+		if callErr != nil {
+			lastErr = callErr
+			continue
+		}
+		lastText = text
+		if extractExpiryDate(text) != "" {
+			return text, nil
+		}
+	}
+	if lastText != "" {
+		return lastText, nil
+	}
+	return "", lastErr
+}
+
+// qrVisionCall 按给定裁剪比例与放大倍数调用一次视觉模型。
+func qrVisionCall(src image.Image, visionCfg QrVisionConfig, ratio float64, scale int) (string, error) {
+	cropped := cropAndScale(src, ratio, scale)
 	var buf bytes.Buffer
 	if err := png.Encode(&buf, cropped); err != nil {
 		return "", err
@@ -191,9 +221,9 @@ func recognizeQrTextWith(path string, visionCfg QrVisionConfig) (string, error) 
 		"max_tokens":  200,
 		"temperature": 0,
 	}
-	raw, _ := json.Marshal(payload)
+	requestBody, _ := common.Marshal(payload)
 
-	req, err := http.NewRequest(http.MethodPost, baseURL+"/v1/chat/completions", bytes.NewReader(raw))
+	req, err := http.NewRequest(http.MethodPost, baseURL+"/v1/chat/completions", bytes.NewReader(requestBody))
 	if err != nil {
 		return "", err
 	}
@@ -217,7 +247,7 @@ func recognizeQrTextWith(path string, visionCfg QrVisionConfig) (string, error) 
 			} `json:"message"`
 		} `json:"choices"`
 	}
-	if err := json.Unmarshal(body, &parsed); err != nil || len(parsed.Choices) == 0 {
+	if err := common.Unmarshal(body, &parsed); err != nil || len(parsed.Choices) == 0 {
 		return "", fmt.Errorf("识别返回为空")
 	}
 	return parsed.Choices[0].Message.Content, nil
