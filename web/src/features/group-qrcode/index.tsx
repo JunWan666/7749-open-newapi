@@ -77,6 +77,7 @@ export function GroupQrcode() {
   const [busy, setBusy] = useState(false)
   const [detecting, setDetecting] = useState(false)
   const [savingMeta, setSavingMeta] = useState(false)
+  const [detectText, setDetectText] = useState('')
   const [previewError, setPreviewError] = useState(false)
   const [dragOver, setDragOver] = useState(false)
   const [zoom, setZoom] = useState(false)
@@ -101,6 +102,7 @@ export function GroupQrcode() {
       setDetecting(true)
       try {
         const res = await detectGroupQrcodeExpiry()
+        setDetectText(res?.data?.text ?? '')
         if (res?.success && res.data?.expires_at) {
           setExpiresAt(res.data.expires_at)
           await updateGroupQrcodeMeta(res.data.expires_at)
@@ -110,7 +112,13 @@ export function GroupQrcode() {
           )
           return
         }
-        if (silent) {
+        if (res?.data?.text) {
+          toast.error(
+            t('Model returned: {{text}} — no date found, please fill it in manually', {
+              text: res.data.text.slice(0, 80),
+            })
+          )
+        } else if (silent) {
           toast.warning(
             t('No expiry date detected on the image, please fill it in manually')
           )
@@ -404,6 +412,14 @@ export function GroupQrcode() {
                     {t('Detect from image')}
                   </Button>
                 </div>
+                {detectText !== '' && (
+                  <div className='rounded-md border bg-muted/30 px-2 py-1.5 text-[11px]'>
+                    <span className='text-muted-foreground'>
+                      {t('Detected text')}:{' '}
+                    </span>
+                    <span className='font-mono'>{detectText}</span>
+                  </div>
+                )}
                 {expiresAt === '' && (
                   <p className='text-destructive flex items-center gap-1 text-xs'>
                     <AlertTriangle className='size-3.5 shrink-0' />

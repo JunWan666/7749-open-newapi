@@ -2699,6 +2699,7 @@
     "No models": "没有可用模型",
     "Test recognition": "测试识别",
     "Detected text": "识别内容",
+    "Model returned: {{text}} — no date found, please fill it in manually": "模型返回：{{text}} —— 没解析出日期，请手动填写",
     "No date found": "未识别到日期",
     "No expiry date set — you will not get an expiry reminder": "未设置有效期，到期前不会有提醒",
     "Uploading is allowed without a date, but you will not be reminded before it expires. The date is printed on the QR image (e.g. “valid until Nov 20”).": "允许不填日期直接上传，但到期前不会提醒你。日期就印在二维码图片上（例如「11月20日前有效」）。",
