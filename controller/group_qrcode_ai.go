@@ -131,7 +131,7 @@ func DetectGroupQrcodeExpiry(c *gin.Context) {
 	if trimmed == "" || strings.EqualFold(trimmed, "NONE") {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
-			"message": "当前识别模型没有返回任何文字，它可能不支持图片输入，请换用视觉模型（如 nvidia/nemotron-3.5-super-vl-120b-a12b）",
+			"message": "识别模型没有返回文字，请换一个支持图片输入的模型（如 nvidia/nemotron-3.5-super-vl-120b-a12b 或 DeepSeek-V4.1-Flash），或手动填写有效期",
 		})
 		return
 	}
@@ -165,10 +165,12 @@ func recognizeQrTextWith(path string, visionCfg QrVisionConfig) (string, error) 
 		return "", fmt.Errorf("图片解码失败")
 	}
 
+	// 依次尝试：原图（部分多模态模型直接读原图更准）→ 底部放大 → 更靠下区域
 	attempts := []struct {
 		ratio float64
 		scale int
 	}{
+		{0, 1},
 		{0.55, 4},
 		{0.85, 2},
 	}
@@ -193,7 +195,10 @@ func recognizeQrTextWith(path string, visionCfg QrVisionConfig) (string, error) 
 
 // qrVisionCall 按给定裁剪比例与放大倍数调用一次视觉模型。
 func qrVisionCall(src image.Image, visionCfg QrVisionConfig, ratio float64, scale int) (string, error) {
-	cropped := cropAndScale(src, ratio, scale)
+	cropped := src
+	if ratio > 0 || scale != 1 {
+		cropped = cropAndScale(src, ratio, scale)
+	}
 	var buf bytes.Buffer
 	if err := png.Encode(&buf, cropped); err != nil {
 		return "", err
@@ -401,7 +406,7 @@ func TestQrVisionConfig(c *gin.Context) {
 	if trimmed == "" || strings.EqualFold(trimmed, "NONE") {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
-			"message": "该模型没有返回任何文字，它可能不支持图片输入，请换用视觉模型（如 nvidia/nemotron-3.5-super-vl-120b-a12b）",
+			"message": "该模型没有返回文字，请换用能看到图片的模型，或手动填写有效期",
 		})
 		return
 	}
