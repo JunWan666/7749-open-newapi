@@ -183,7 +183,8 @@ export function UserLimitPage() {
         {isLoading || !config ? (
           <Skeleton className='h-80 w-full rounded-xl' />
         ) : (
-          <div className='flex w-full flex-col gap-4'>
+          <div className='grid w-full gap-4 xl:grid-cols-[minmax(0,400px)_minmax(0,1fr)]'>
+            <div className='flex flex-col gap-4'>
             <div className='bg-card flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4 shadow-sm'>
               <div>
                 <div className='text-sm font-semibold'>
@@ -306,6 +307,9 @@ export function UserLimitPage() {
               </div>
             </div>
 
+            </div>
+
+            <div className='flex flex-col gap-4'>
             <div className='bg-card flex flex-col overflow-hidden rounded-xl border shadow-sm'>
               <div className='flex flex-wrap items-center justify-between gap-2 border-b px-4 py-2'>
                 <div className='text-sm font-semibold'>{t('Today usage')}</div>
@@ -467,6 +471,7 @@ export function UserLimitPage() {
                   })
                 )}
               </div>
+            </div>
             </div>
           </div>
         )}
