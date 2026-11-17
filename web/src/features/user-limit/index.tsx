@@ -19,6 +19,8 @@ import {
   type UserLimitRule,
 } from './api'
 
+const USERS_PER_PAGE = 10
+
 const selectClass =
   'border-input h-8 rounded-md border bg-transparent px-2 text-xs outline-none'
 
@@ -56,6 +58,7 @@ export function UserLimitPage() {
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }))
   }, [usageRules])
   const [usageChannel, setUsageChannel] = useState<number | null>(null)
+  const [rulePages, setRulePages] = useState<Record<number, number>>({})
   const currentChannelId = usageChannel ?? usageChannels[0]?.id ?? null
   const currentRules = usageRules.filter(
     (group) => group.channel_id === currentChannelId
@@ -335,14 +338,23 @@ export function UserLimitPage() {
                 )}
               </div>
 
-              <div className='max-h-[360px] overflow-y-auto'>
+              <div className='flex flex-col divide-y'>
                 {currentRules.length === 0 ? (
                   <div className='text-muted-foreground px-6 py-8 text-center text-sm'>
                     {t('No usage yet')}
                   </div>
                 ) : (
-                  <div className='flex flex-col divide-y'>
-                    {currentRules.map((group) => (
+                  currentRules.map((group) => {
+                    const page = rulePages[group.rule_index] ?? 1
+                    const pages = Math.max(
+                      1,
+                      Math.ceil(group.users.length / USERS_PER_PAGE)
+                    )
+                    const visible = group.users.slice(
+                      (page - 1) * USERS_PER_PAGE,
+                      page * USERS_PER_PAGE
+                    )
+                    return (
                       <div
                         key={`rule-${group.rule_index}`}
                         className='flex flex-col gap-1.5 p-2.5'
@@ -375,7 +387,7 @@ export function UserLimitPage() {
                               </tr>
                             </thead>
                             <tbody className='divide-y'>
-                              {group.users.length === 0 ? (
+                              {visible.length === 0 ? (
                                 <tr>
                                   <td
                                     colSpan={4}
@@ -385,13 +397,13 @@ export function UserLimitPage() {
                                   </td>
                                 </tr>
                               ) : (
-                                group.users.map((row, index) => (
+                                visible.map((row, index) => (
                                   <tr
                                     key={`${group.rule_index}-${row.user_id}`}
                                     className='hover:bg-muted/30'
                                   >
                                     <td className='text-muted-foreground px-3 py-1 tabular-nums'>
-                                      {index + 1}
+                                      {(page - 1) * USERS_PER_PAGE + index + 1}
                                     </td>
                                     <td className='px-3 py-1'>{row.username}</td>
                                     <td
@@ -412,9 +424,47 @@ export function UserLimitPage() {
                             </tbody>
                           </table>
                         </div>
+
+                        {group.users.length > USERS_PER_PAGE && (
+                          <div className='flex items-center justify-end gap-2'>
+                            <span className='text-muted-foreground text-[11px]'>
+                              {page}/{pages}
+                            </span>
+                            <div className='flex items-center gap-1'>
+                              <Button
+                                size='sm'
+                                variant='outline'
+                                className='h-6 px-2'
+                                disabled={page <= 1}
+                                onClick={() =>
+                                  setRulePages((prev) => ({
+                                    ...prev,
+                                    [group.rule_index]: Math.max(1, page - 1),
+                                  }))
+                                }
+                              >
+                                {t('Prev page')}
+                              </Button>
+                              <Button
+                                size='sm'
+                                variant='outline'
+                                className='h-6 px-2'
+                                disabled={page >= pages}
+                                onClick={() =>
+                                  setRulePages((prev) => ({
+                                    ...prev,
+                                    [group.rule_index]: Math.min(pages, page + 1),
+                                  }))
+                                }
+                              >
+                                {t('Next page')}
+                              </Button>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    ))}
-                  </div>
+                    )
+                  })
                 )}
               </div>
             </div>

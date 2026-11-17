@@ -170,7 +170,7 @@ func buildUserModelLimitUsage(cfg service.UserModelLimitConfig, channelNames map
 		base.Select("user_id, username, coalesce(sum(count), 0) as calls").
 			Group("user_id, username").
 			Order("calls DESC").
-			Limit(30).
+			Limit(200).
 			Scan(&rows)
 
 		users := make([]UserModelLimitUsage, 0, len(rows))

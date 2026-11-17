@@ -582,6 +582,8 @@
     "Balance total": "Balance total",
     "Daily Call Limit": "Daily Call Limit",
     "users": "users",
+    "Prev page": "Prev",
+    "Next page": "Next",
     "Enable daily call limit": "Enable daily call limit",
     "Each user gets a per-day call cap on the configured models or channels. Root and exempt users are not limited.": "Each user gets a per-day call cap on the configured models or channels. Root and exempt users are not limited.",
     "Add rule": "Add rule",
