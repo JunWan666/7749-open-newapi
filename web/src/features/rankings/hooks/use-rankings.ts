@@ -25,6 +25,7 @@ export function useRankings(period: RankingPeriod) {
   return useQuery({
     queryKey: ['rankings', period],
     queryFn: () => getRankings(period),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 60_000,
+    refetchInterval: 60_000,
   })
 }

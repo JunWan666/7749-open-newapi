@@ -129,6 +129,8 @@ export type RankingsSnapshot = {
   /** Window covered by this snapshot (unix seconds). */
   start_ts: number
   end_ts: number
+  /** When this snapshot was generated (unix seconds). */
+  generated_at?: number
   // Overall (all categories) ------------------------------------------------
   models: ModelRanking[]
   vendors: VendorRanking[]

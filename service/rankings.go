@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	rankingCacheTTL         = 5 * time.Minute
+	rankingCacheTTL         = 60 * time.Second
 	rankingLeaderboardLimit = 20
 	rankingHistoryLimit     = 10
 	rankingVendorLimit      = 5
@@ -25,6 +25,8 @@ type RankingsResponse struct {
 	// the exact "from ~ to" range next to the period switcher.
 	StartTs int64 `json:"start_ts"`
 	EndTs   int64 `json:"end_ts"`
+	// GeneratedAt 是这份快照的生成时间（缓存可能存活 60 秒）。
+	GeneratedAt int64 `json:"generated_at"`
 
 	Models             []RankedModel      `json:"models"`
 	Vendors            []RankedVendor     `json:"vendors"`
@@ -219,6 +221,7 @@ func buildRankingsSnapshot(config rankingPeriodConfig, now time.Time) (*Rankings
 	return &RankingsResponse{
 		StartTs:            startTime,
 		EndTs:              endTime,
+		GeneratedAt:        now.Unix(),
 		Models:             limitRankedModels(rankedModels, rankingLeaderboardLimit),
 		Vendors:            vendors,
 		TopMovers:          movers,

@@ -77,6 +77,7 @@ export function Rankings() {
         onPeriodChange={handlePeriodChange}
         startTs={snapshot.start_ts}
         endTs={snapshot.end_ts}
+        generatedAt={snapshot.generated_at}
       />
     )
   }

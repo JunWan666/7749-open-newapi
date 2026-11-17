@@ -56,6 +56,7 @@ type ModelsSectionProps = {
   /** Window covered by the rows (unix seconds). */
   startTs?: number
   endTs?: number
+  generatedAt?: number
   isLoading?: boolean
 }
 
@@ -230,6 +231,12 @@ export function ModelsSection(props: ModelsSectionProps) {
           <span className='text-muted-foreground text-xs'>
             {t('Models used in this period, ranked automatically')}
           </span>
+          {props.generatedAt ? (
+            <span className='text-muted-foreground/70 text-[11px]'>
+              {t('Updated')}:{' '}
+              {dayjs.unix(props.generatedAt).format('HH:mm:ss')}
+            </span>
+          ) : null}
         </div>
         <div className='flex flex-col items-end gap-1'>
           <div className='bg-muted/60 inline-flex rounded-lg p-0.5'>
