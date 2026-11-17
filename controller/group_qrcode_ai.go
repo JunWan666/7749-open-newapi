@@ -127,6 +127,14 @@ func DetectGroupQrcodeExpiry(c *gin.Context) {
 		})
 		return
 	}
+	trimmed := strings.TrimSpace(text)
+	if trimmed == "" || strings.EqualFold(trimmed, "NONE") {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": "当前识别模型没有返回任何文字，它可能不支持图片输入，请换用视觉模型（如 nvidia/nemotron-3.5-super-vl-120b-a12b）",
+		})
+		return
+	}
 	expiresAt := extractExpiryDate(text)
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
@@ -387,6 +395,14 @@ func TestQrVisionConfig(c *gin.Context) {
 	text, err := recognizeQrTextWith(path, cfg)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{"success": false, "message": "识别失败：" + err.Error()})
+		return
+	}
+	trimmed := strings.TrimSpace(text)
+	if trimmed == "" || strings.EqualFold(trimmed, "NONE") {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": "该模型没有返回任何文字，它可能不支持图片输入，请换用视觉模型（如 nvidia/nemotron-3.5-super-vl-120b-a12b）",
+		})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{

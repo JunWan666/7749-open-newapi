@@ -2693,6 +2693,7 @@
     "Save expiry": "保存有效期",
     "Detect from image": "从图片识别",
     "Recognition model": "识别模型",
+    "Must be a vision model that accepts images (e.g. nemotron-3.5-super-vl). Text-only models cannot read the picture.": "必须选支持图片输入的视觉模型（如 nemotron-3.5-super-vl）；纯文本模型读不了图片。",
     "Used by “Detect from image” to read the printed date": "「从图片识别」时用它来读图片上印的日期",
     "Select channel": "选择渠道",
     "No models": "没有可用模型",

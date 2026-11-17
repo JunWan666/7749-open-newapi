@@ -2693,6 +2693,7 @@
     "Save expiry": "Save expiry",
     "Detect from image": "Detect from image",
     "Recognition model": "Recognition model",
+    "Must be a vision model that accepts images (e.g. nemotron-3.5-super-vl). Text-only models cannot read the picture.": "Must be a vision model that accepts images (e.g. nemotron-3.5-super-vl). Text-only models cannot read the picture.",
     "Used by “Detect from image” to read the printed date": "Used by “Detect from image” to read the printed date",
     "Select channel": "Select channel",
     "No models": "No models",

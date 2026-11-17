@@ -625,6 +625,11 @@ function QrVisionSection() {
           {t('Used by “Detect from image” to read the printed date')}
         </span>
       </div>
+      <p className='text-muted-foreground/80 text-[10px]'>
+        {t(
+          'Must be a vision model that accepts images (e.g. nemotron-3.5-super-vl). Text-only models cannot read the picture.'
+        )}
+      </p>
 
       <div className='flex flex-wrap items-center gap-2'>
         <select
