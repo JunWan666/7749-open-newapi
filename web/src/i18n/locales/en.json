@@ -2622,6 +2622,8 @@
     "Listed users": "Listed users",
     "Total calls": "Total calls",
     "Model Ranking": "Model Ranking",
+    "Model usage in the selected period": "Model usage in the selected period",
+    "Calls shown here are grouped by model for the selected period.": "Calls shown here are grouped by model for the selected period.",
     "Models used in this period, ranked automatically": "Models used in this period, ranked automatically",
     "By calls": "By calls",
     "By tokens": "By tokens",

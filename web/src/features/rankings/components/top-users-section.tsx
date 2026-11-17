@@ -17,10 +17,17 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useQuery } from '@tanstack/react-query'
-import { CalendarRange, Crown, Users } from 'lucide-react'
+import { CalendarRange, ChevronRight, Crown, Users } from 'lucide-react'
 import { useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
 import dayjs from '@/lib/dayjs'
 import { cn } from '@/lib/utils'
@@ -38,6 +45,32 @@ type TopUsersResponse = {
 }
 
 const DAY_OPTIONS = [1, 7, 30] as const
+
+type UserDetailRow = {
+  model: string
+  calls: number
+  quota: number
+  tokens: number
+}
+
+type UserDetail = {
+  user: string
+  days: number
+  total_calls: number
+  total_quota: number
+  total_tokens: number
+  rows: UserDetailRow[]
+}
+
+async function fetchUserDetail(user: string, days: number): Promise<UserDetail> {
+  const res = await fetch(
+    `/rank-api/api/user_detail?user=${encodeURIComponent(user)}&days=${days}`
+  )
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status}`)
+  }
+  return (await res.json()) as UserDetail
+}
 
 async function fetchTopUsers(days: number): Promise<TopUsersResponse> {
   const res = await fetch(`/rank-api/api/top_users?days=${days}`)
@@ -87,6 +120,14 @@ export function TopUsersSection() {
   const { t } = useTranslation()
   // Default to 近 1 天, matching the platform ranking tab.
   const [days, setDays] = useState<number>(1)
+  const [detailUser, setDetailUser] = useState<string | null>(null)
+
+  const detailQuery = useQuery({
+    queryKey: ['rank-api', 'user-detail', detailUser, days],
+    queryFn: () => fetchUserDetail(String(detailUser), days),
+    enabled: Boolean(detailUser),
+    staleTime: 60_000,
+  })
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['rank-api', 'top-users', days],
@@ -125,6 +166,66 @@ export function TopUsersSection() {
       <span className='text-muted-foreground flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold'>
         {index + 1}
       </span>
+    )
+  }
+
+  function renderDetail(): ReactNode {
+    if (detailQuery.isLoading) {
+      return <Skeleton className='h-64 w-full rounded-lg' />
+    }
+    const detail = detailQuery.data
+    if (!detail) {
+      return (
+        <div className='text-muted-foreground py-8 text-center text-sm'>
+          {t('No data for this period')}
+        </div>
+      )
+    }
+    return (
+      <div className='flex flex-col gap-3'>
+        <div className='grid grid-cols-3 gap-2'>
+          <StatCard
+            label={t('Total calls')}
+            value={detail.total_calls.toLocaleString()}
+          />
+          <StatCard label={t('Total spend')} value={formatMoney(detail.total_quota)} />
+          <StatCard label={t('Tokens')} value={formatTokens(detail.total_tokens)} />
+        </div>
+
+        <div className='max-h-[45vh] overflow-y-auto rounded-lg border'>
+          <table className='w-full text-xs'>
+            <thead className='bg-muted/40 text-muted-foreground sticky top-0 text-[11px]'>
+              <tr>
+                <th className='px-3 py-2 text-left font-medium'>{t('Model')}</th>
+                <th className='px-3 py-2 text-right font-medium'>{t('calls')}</th>
+                <th className='px-3 py-2 text-right font-medium'>{t('Total spend')}</th>
+                <th className='px-3 py-2 text-right font-medium'>Tokens</th>
+              </tr>
+            </thead>
+            <tbody className='divide-y'>
+              {detail.rows.map((item) => (
+                <tr key={item.model} className='hover:bg-muted/30'>
+                  <td className='max-w-[240px] truncate px-3 py-1.5 font-mono' title={item.model}>
+                    {item.model}
+                  </td>
+                  <td className='px-3 py-1.5 text-right tabular-nums'>
+                    {item.calls.toLocaleString()}
+                  </td>
+                  <td className='text-muted-foreground px-3 py-1.5 text-right tabular-nums'>
+                    {formatMoney(item.quota)}
+                  </td>
+                  <td className='text-muted-foreground px-3 py-1.5 text-right tabular-nums'>
+                    {formatTokens(item.tokens)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className='text-muted-foreground text-[11px]'>
+          {t('Calls shown here are grouped by model for the selected period.')}
+        </p>
+      </div>
     )
   }
 
@@ -170,7 +271,15 @@ export function TopUsersSection() {
           {rows.map((row, index) => (
             <div
               key={row.user}
-              className='hover:bg-muted/40 flex items-center gap-3 px-3 py-3 transition-colors sm:px-4'
+              role='button'
+              tabIndex={0}
+              onClick={() => setDetailUser(row.user)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  setDetailUser(row.user)
+                }
+              }}
+              className='hover:bg-muted/40 flex cursor-pointer items-center gap-3 px-3 py-3 transition-colors sm:px-4'
             >
               {rankBadge(index)}
 
@@ -198,6 +307,7 @@ export function TopUsersSection() {
               <span className='text-muted-foreground w-20 shrink-0 text-right text-xs tabular-nums'>
                 {formatMoney(row.quota)}
               </span>
+              <ChevronRight className='text-muted-foreground/50 size-4 shrink-0' />
             </div>
           ))}
         </div>
@@ -241,6 +351,25 @@ export function TopUsersSection() {
       </div>
 
       {renderBody()}
+
+      <Dialog
+        open={detailUser !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDetailUser(null)
+          }
+        }}
+      >
+        <DialogContent className='max-w-2xl'>
+          <DialogHeader>
+            <DialogTitle>{detailUser}</DialogTitle>
+            <DialogDescription>
+              {t('Model usage in the selected period')}
+            </DialogDescription>
+          </DialogHeader>
+          {renderDetail()}
+        </DialogContent>
+      </Dialog>
     </section>
   )
 }
